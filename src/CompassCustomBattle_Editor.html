@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>定義ファイル エディタ - コンパス カスタムバトル</title>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --text-color: #e0e0e0;
+            --border-color: #333;
+            --primary: #bb86fc;
+            --error: #ff5555;
+            --success: #03dac6;
+        }
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0 0 50px 0; /* 下部に余白 */
+        }
+        .container { max-width: 900px; margin: 0 auto; padding: 20px; }
+        h1 { text-align: center; margin-top: 20px; }
+        
+        /* Stickyヘッダ部分 */
+        .sticky-header {
+            position: sticky;
+            top: 0;
+            background-color: var(--bg-color);
+            z-index: 100;
+            padding: 10px 20px 0;
+            border-bottom: 2px solid var(--border-color);
+            box-shadow: 0 4px 6px -2px rgba(0,0,0,0.5);
+        }
+        .tabs { 
+            display: flex; 
+            gap: 5px; 
+            max-width: 900px; 
+            margin: 0 auto; 
+        }
+        .tab-btn {
+            background-color: transparent; border: none; color: #888;
+            padding: 12px 20px; font-size: 16px; cursor: pointer; font-weight: bold;
+            transition: all 0.2s; border-bottom: 3px solid transparent; margin-bottom: -2px;
+        }
+        .tab-btn:hover { color: var(--text-color); }
+        .tab-btn.active { color: var(--primary); border-bottom: 3px solid var(--primary); }
+        
+        .tab-content { display: none; margin-top: 20px;}
+        .tab-content.active { display: block; }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+
+        /* ファイル操作バー (読み込み/保存) */
+        .file-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            background-color: #252525;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .file-controls input[type="file"] { background: #121212; padding: 6px; border-radius: 4px; color: white; border: 1px solid var(--border-color); }
+        .btn-load { background-color: #444; color: white; }
+        .btn-load:hover { background-color: #555; }
+        
+        .btn-save { background-color: var(--primary); color: #000; font-size: 15px; padding: 8px 24px; margin-left: auto; }
+        .btn-save:hover:not(:disabled) { background-color: #9965f4; }
+        .btn-save:disabled { background-color: #444; color: #888; cursor: not-allowed; }
+
+        /* テーブル・フォーム周り */
+        .row-item {
+            display: flex; gap: 10px; align-items: center;
+            background-color: #2c2c2c; padding: 10px; border-radius: 6px; margin-bottom: 8px;
+        }
+        input, select {
+            padding: 8px; background: #121212; color: white;
+            border: 1px solid var(--border-color); border-radius: 4px;
+        }
+        input.error, select.error { border: 2px solid var(--error); outline: none; background-color: rgba(255, 85, 85, 0.1); }
+        
+        .error-msg { color: var(--error); font-size: 0.85em; margin-left: auto; font-weight: bold; }
+        
+        button { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; transition: all 0.2s;}
+        button.btn-add { background-color: #2e7d32; width: 100%; margin-top: 10px; padding: 12px; color: white; }
+        button.btn-add:hover { background-color: #388e3c; }
+        button.btn-del { background-color: #d32f2f; padding: 8px 12px; color: white; }
+        button.btn-del:hover { background-color: #f44336; }
+    </style>
+</head>
+<body>
+
+<h1>定義ファイル エディタ</h1>
+
+<div class="sticky-header">
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('hero')">List_Hero.js</button>
+        <button class="tab-btn" onclick="switchTab('stage')">List_Stage.js</button>
+        <button class="tab-btn" onclick="switchTab('notOwned')">List_NotOwned.js</button>
+    </div>
+</div>
+
+<div class="container">
+    <div class="card">
+        <div id="tab-hero" class="tab-content active">
+            <div class="file-controls">
+                <input type="file" id="file-hero" accept=".js">
+                <button class="btn-load" onclick="loadFile('hero', 'List_Hero.js')">読み込む</button>
+                <button id="save-hero" class="btn-save" onclick="saveFile('hero')" disabled>保存する</button>
+            </div>
+            <p>使用キャラクターの一覧を定義します。ヒーロー名(英数字推奨)は他の機能と連携する内部IDとして機能します。</p>
+            <div id="hero-list"></div>
+            <button class="btn-add" onclick="addRow('hero')">＋ ヒーローを追加</button>
+        </div>
+
+        <div id="tab-stage" class="tab-content">
+            <div class="file-controls">
+                <input type="file" id="file-stage" accept=".js">
+                <button class="btn-load" onclick="loadFile('stage', 'List_Stage.js')">読み込む</button>
+                <button id="save-stage" class="btn-save" onclick="saveFile('stage')" disabled>保存する</button>
+            </div>
+            <p>対戦ステージの一覧を定義します。対戦人数は2か3を選択してください。</p>
+            <div id="stage-list"></div>
+            <button class="btn-add" onclick="addRow('stage')">＋ ステージを追加</button>
+        </div>
+
+        <div id="tab-notOwned" class="tab-content">
+            <div class="file-controls">
+                <input type="file" id="file-notOwned" accept=".js">
+                <button class="btn-load" onclick="loadFile('notOwned', 'List_NotOwned.js')">読み込む</button>
+                <button id="save-notOwned" class="btn-save" onclick="saveFile('notOwned')" disabled>保存する</button>
+            </div>
+            <p>参加者ごとに使用不可能なヒーローを定義します。ヒーロー名は「List_Hero.js」の定義とリンクしています。</p>
+            <div id="notOwned-list"></div>
+            <button class="btn-add" onclick="addRow('notOwned')">＋ 使用不可能ヒーローを追加</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- データステート ---
+    let data = {
+        hero: [],
+        stage: [],
+        notOwned: []
+    };
+
+    // 変更フラグ (保存ボタンの制御用)
+    let isDirty = {
+        hero: false,
+        stage: false,
+        notOwned: false
+    };
+
+    const ROLES = [
+        { val: 'ATTACKER', label: 'アタッカー' },
+        { val: 'GUNNER', label: 'ガンナー' },
+        { val: 'SPRINTER', label: 'スプリンター' },
+        { val: 'TANK', label: 'タンク' }
+    ];
+
+    // --- 初期化 ---
+    document.addEventListener('DOMContentLoaded', () => {
+        // 空の状態で数行追加しておく（新規作成用）
+        if(data.hero.length === 0) { addRow('hero'); isDirty.hero = false; }
+        if(data.stage.length === 0) { addRow('stage'); isDirty.stage = false; }
+        
+        renderHeroList();
+        renderStageList();
+        renderNotOwnedList();
+        updateSaveButtons();
+    });
+
+    // --- タブ切り替え ---
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+        
+        event.target.classList.add('active');
+        document.getElementById('tab-' + tabId).classList.add('active');
+        
+        // 別のタブへ移動した際、画面トップへ少しスクロール調整（必要であれば）
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // --- ファイル読み込み処理 (個別) ---
+    function loadFile(type, expectedFileName) {
+        const fileInput = document.getElementById(`file-${type}`);
+        if (fileInput.files.length === 0) {
+            alert('ファイルが選択されていません。');
+            return;
+        }
+
+        const file = fileInput.files[0];
+        // ファイル名が想定と違う場合の警告 (強制ではない)
+        if (file.name !== expectedFileName) {
+            if (!confirm(`選択されたファイル名が「${expectedFileName}」ではありません。\n読み込みを続行しますか？`)) {
+                return;
+            }
+        }
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const text = e.target.result;
+            try {
+                const match = text.match(/=\s*(\[[\s\S]*\])\s*;/);
+                if (match) {
+                    const parsedArray = new Function('return ' + match[1])();
+                    data[type] = parsedArray;
+                    
+                    // 読み込み成功時は変更フラグをリセット
+                    isDirty[type] = false;
+                    
+                    if(type === 'hero') { renderHeroList(); renderNotOwnedList(); } // Heroが変わればNotOwnedのプルダウンも更新
+                    if(type === 'stage') renderStageList();
+                    if(type === 'notOwned') renderNotOwnedList();
+                    
+                    updateSaveButtons();
+                    alert(`${file.name} を読み込みました。`);
+                } else {
+                    alert('ファイルの解析に失敗しました。フォーマットが正しいか確認してください。');
+                }
+            } catch (err) {
+                console.error('パースエラー:', err);
+                alert('読み込み中にエラーが発生しました。');
+            }
+        };
+        reader.readAsText(file);
+    }
+
+    // --- 描画・UI更新処理 ---
+    function renderHeroList() {
+        const container = document.getElementById('hero-list');
+        container.innerHTML = '';
+        data.hero.forEach((item, index) => {
+            const div = document.createElement('div');
+            div.className = 'row-item';
+            div.innerHTML = `
+                <select onchange="markDirty('hero'); updateData('hero', ${index}, 'role', this.value)" id="hero-role-${index}">
+                    ${ROLES.map(r => `<option value="${r.val}" ${item.role === r.val ? 'selected' : ''}>${r.label}</option>`).join('')}
+                </select>
+                <input type="text" placeholder="ヒーロー名 (英数)" value="${item.name || ''}" onchange="markDirty('hero'); updateData('hero', ${index}, 'name', this.value)" id="hero-name-${index}">
+                <input type="text" placeholder="ヒーロー和名" value="${item.jp_name || ''}" onchange="markDirty('hero'); updateData('hero', ${index}, 'jp_name', this.value)" id="hero-jp_name-${index}" style="flex-grow:1;">
+                <span class="error-msg" id="hero-err-${index}"></span>
+                <button class="btn-del" onclick="deleteRow('hero', ${index})">削除</button>
+            `;
+            container.appendChild(div);
+        });
+    }
+
+    function renderStageList() {
+        const container = document.getElementById('stage-list');
+        container.innerHTML = '';
+        data.stage.forEach((item, index) => {
+            const div = document.createElement('div');
+            div.className = 'row-item';
+            div.innerHTML = `
+                <select onchange="markDirty('stage'); updateData('stage', ${index}, 'mode', parseInt(this.value))" id="stage-mode-${index}">
+                    <option value="2" ${item.mode === 2 ? 'selected' : ''}>2 vs 2</option>
+                    <option value="3" ${item.mode === 3 ? 'selected' : ''}>3 vs 3</option>
+                </select>
+                <input type="text" placeholder="ステージ名 (英数)" value="${item.name || ''}" onchange="markDirty('stage'); updateData('stage', ${index}, 'name', this.value)" id="stage-name-${index}">
+                <input type="text" placeholder="ステージ和名" value="${item.jp_name || ''}" onchange="markDirty('stage'); updateData('stage', ${index}, 'jp_name', this.value)" id="stage-jp_name-${index}" style="flex-grow:1;">
+                <span class="error-msg" id="stage-err-${index}"></span>
+                <button class="btn-del" onclick="deleteRow('stage', ${index})">削除</button>
+            `;
+            container.appendChild(div);
+        });
+    }
+
+    function renderNotOwnedList() {
+        const container = document.getElementById('notOwned-list');
+        container.innerHTML = '';
+        
+        const heroOptions = data.hero
+            .filter(h => h.name && h.jp_name)
+            .map(h => `<option value="${h.name}">${h.jp_name}</option>`)
+            .join('');
+
+        data.notOwned.forEach((item, index) => {
+            const div = document.createElement('div');
+            div.className = 'row-item';
+            div.innerHTML = `
+                <input type="text" placeholder="参加者和名" value="${item.player_jp_name || ''}" onchange="markDirty('notOwned'); updateData('notOwned', ${index}, 'player_jp_name', this.value)" id="notOwned-player_jp_name-${index}">
+                <select onchange="markDirty('notOwned'); updateData('notOwned', ${index}, 'hero_name', this.value)" id="notOwned-hero_name-${index}" style="flex-grow:1;">
+                    <option value="">-- ヒーローを選択 --</option>
+                    ${heroOptions}
+                </select>
+                <span class="error-msg" id="notOwned-err-${index}"></span>
+                <button class="btn-del" onclick="deleteRow('notOwned', ${index})">削除</button>
+            `;
+            container.appendChild(div);
+            
+            if(item.hero_name) {
+                document.getElementById(`notOwned-hero_name-${index}`).value = item.hero_name;
+            }
+        });
+    }
+
+    // --- データ操作 ---
+    function markDirty(type) {
+        isDirty[type] = true;
+        updateSaveButtons();
+        // 保存前に発生していたエラー表示を一旦クリアする
+        clearErrors(type);
+    }
+
+    function updateSaveButtons() {
+        document.getElementById('save-hero').disabled = !isDirty.hero;
+        document.getElementById('save-stage').disabled = !isDirty.stage;
+        document.getElementById('save-notOwned').disabled = !isDirty.notOwned;
+    }
+
+    function clearErrors(type) {
+        document.querySelectorAll(`#tab-${type} input, #tab-${type} select`).forEach(el => el.classList.remove('error'));
+        document.querySelectorAll(`#tab-${type} .error-msg`).forEach(el => el.textContent = '');
+    }
+
+    function updateData(type, index, key, value) {
+        data[type][index][key] = value;
+        if(type === 'hero' && (key === 'name' || key === 'jp_name')) {
+            // ヒーロー名が変わった場合は未所持リストのプルダウンも再描画する
+            renderNotOwnedList(); 
+        }
+    }
+
+    function addRow(type) {
+        if (type === 'hero') data.hero.push({ role: 'ATTACKER', name: '', jp_name: '' });
+        if (type === 'stage') data.stage.push({ mode: 2, name: '', jp_name: '' });
+        if (type === 'notOwned') data.notOwned.push({ player_jp_name: '', hero_name: '' });
+        
+        markDirty(type);
+        if (type === 'hero') renderHeroList();
+        if (type === 'stage') renderStageList();
+        if (type === 'notOwned') renderNotOwnedList();
+    }
+
+    function deleteRow(type, index) {
+        data[type].splice(index, 1);
+        markDirty(type);
+        if (type === 'hero') { renderHeroList(); renderNotOwnedList(); }
+        if (type === 'stage') renderStageList();
+        if (type === 'notOwned') renderNotOwnedList();
+    }
+
+    // --- 保存時のバリデーション ---
+    function validateFile(type) {
+        let hasError = false;
+        clearErrors(type); // チェック前にリセット
+
+        if (type === 'hero') {
+            const heroNames = [];
+            data.hero.forEach((h, i) => {
+                let err = [];
+                if (!h.name) { err.push('名(英数)未入力'); document.getElementById(`hero-name-${i}`).classList.add('error'); }
+                else if (heroNames.includes(h.name)) { err.push('名(英数)重複'); document.getElementById(`hero-name-${i}`).classList.add('error'); }
+                if (!h.jp_name) { err.push('和名未入力'); document.getElementById(`hero-jp_name-${i}`).classList.add('error'); }
+                
+                if (h.name) heroNames.push(h.name);
+                if (err.length > 0) {
+                    document.getElementById(`hero-err-${i}`).textContent = err.join(', ');
+                    hasError = true;
+                }
+            });
+        } 
+        else if (type === 'stage') {
+            const stageNames = [];
+            data.stage.forEach((s, i) => {
+                let err = [];
+                if (!s.name) { err.push('名(英数)未入力'); document.getElementById(`stage-name-${i}`).classList.add('error'); }
+                else if (stageNames.includes(s.name)) { err.push('名(英数)重複'); document.getElementById(`stage-name-${i}`).classList.add('error'); }
+                if (!s.jp_name) { err.push('和名未入力'); document.getElementById(`stage-jp_name-${i}`).classList.add('error'); }
+                
+                if (s.name) stageNames.push(s.name);
+                if (err.length > 0) {
+                    document.getElementById(`stage-err-${i}`).textContent = err.join(', ');
+                    hasError = true;
+                }
+            });
+        } 
+        else if (type === 'notOwned') {
+            const validHeroNames = data.hero.map(h => h.name).filter(n => n);
+            data.notOwned.forEach((n, i) => {
+                let err = [];
+                if (!n.player_jp_name) { err.push('参加者名未入力'); document.getElementById(`notOwned-player_jp_name-${i}`).classList.add('error'); }
+                if (!n.hero_name) { err.push('ヒーロー未選択'); document.getElementById(`notOwned-hero_name-${i}`).classList.add('error'); }
+                else if (!validHeroNames.includes(n.hero_name)) { 
+                    err.push('存在しないヒーロー指定'); 
+                    document.getElementById(`notOwned-hero_name-${i}`).classList.add('error'); 
+                }
+                
+                if (err.length > 0) {
+                    document.getElementById(`notOwned-err-${i}`).textContent = err.join(', ');
+                    hasError = true;
+                }
+            });
+        }
+
+        return !hasError;
+    }
+
+    // --- ファイル保存 (ダウンロード) ---
+    function saveFile(type) {
+        // 保存時に該当ファイルのバリデーションを実行
+        if (!validateFile(type)) {
+            alert('入力エラーがあります。赤枠の箇所を修正してから再度保存してください。');
+            return;
+        }
+
+        if (type === 'hero') downloadJS('List_Hero.js', 'LIST_HERO', data.hero);
+        if (type === 'stage') downloadJS('List_Stage.js', 'LIST_STAGE', data.stage);
+        if (type === 'notOwned') downloadJS('List_NotOwned.js', 'LIST_NOT_OWNED', data.notOwned);
+        
+        // 保存成功したら変更フラグを解除
+        isDirty[type] = false;
+        updateSaveButtons();
+        
+        const btn = document.getElementById(`save-${type}`);
+        const originalText = btn.textContent;
+        const originalBg = btn.style.backgroundColor;
+        
+        btn.textContent = '保存しました！';
+        btn.style.backgroundColor = 'var(--success)';
+        btn.style.color = '#000';
+        
+        setTimeout(() => {
+            btn.textContent = originalText;
+            btn.style.backgroundColor = originalBg;
+            btn.style.color = '';
+        }, 2000);
+    }
+
+    function downloadJS(filename, constName, arrayData) {
+        const jsonStr = JSON.stringify(arrayData, null, 4);
+        const content = `const ${constName} = ${jsonStr};`;
+        
+        const blob = new Blob([content], { type: 'application/javascript;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+</script>
+</body>
+</html>
