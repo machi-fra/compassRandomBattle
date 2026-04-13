@@ -90,5 +90,33 @@ const LIST_NOT_OWNED = [
     {
         "player_jp_name": "すゃさん",
         "hero_name": "ATTACKER_023"
+    },
+    {
+        "player_jp_name": "ろるさん",
+        "hero_name": "GUNNER_012"
+    },
+    {
+        "player_jp_name": "ろるさん",
+        "hero_name": "GUNNER_011"
+    },
+    {
+        "player_jp_name": "ろるさん",
+        "hero_name": "ATTACKER_008"
+    },
+    {
+        "player_jp_name": "ろるさん",
+        "hero_name": "ATTACKER_007"
+    },
+    {
+        "player_jp_name": "ろるさん",
+        "hero_name": "TANK_007"
+    },
+    {
+        "player_jp_name": "ろるさん",
+        "hero_name": "SPRINTER_007"
+    },
+    {
+        "player_jp_name": "ろるさん",
+        "hero_name": "SPRINTER_016"
     }
 ];
