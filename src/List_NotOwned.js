@@ -61,10 +61,6 @@ const LIST_NOT_OWNED = [
     },
     {
         "player_jp_name": "らいねるさん",
-        "hero_name": "TANK_005"
-    },
-    {
-        "player_jp_name": "らいねるさん",
         "hero_name": "TANK_007"
     },
     {
