@@ -1,528 +1,699 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>カスタムバトル対戦表</title>
-    <script src="List_Hero.js"></script>
-    <script src="List_Stage.js"></script>
-    <script src="List_NotOwned.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>カスタムバトル対戦表ジェネレーター</title>
+<style>
+    /* 共通変数・基本設定 */
+    :root {
+        --bg-color: #121212;
+        --card-bg: #1e1e1e;
+        --text-color: #e0e0e0;
+        --border-color: #333;
+        --red-team: #e83828;
+        --blue-team: #004dff;
+        --primary: #bb86fc;
+    }
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        margin: 0;
+        padding: 10px;
+        box-sizing: border-box;
+    }
+    .container {
+        max-width: 600px;
+        margin: 0 auto;
+        padding-bottom: 20px;
+    }
+    h1, h2, h3 { margin-top: 0; }
+    
+    /* セクション共通 */
+    .section {
+        background-color: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 15px;
+    }
 
-    <style>
-        /* ============================
-           CSS: 画面・UI仕様 (ダークモード)
-           ============================ */
-        :root {
-            --bg-main: #121212;
-            --bg-card: #1e1e1e;
-            --text-main: #e0e0e0;
-            --color-red: #e83828;
-            --color-blue: #004dff;
-            --border-color: #333;
-        }
+    /* フォーム要素 */
+    input[type="text"], select, button {
+        background-color: #2c2c2c;
+        color: var(--text-color);
+        border: 1px solid var(--border-color);
+        padding: 8px;
+        border-radius: 4px;
+        font-size: 1rem;
+    }
+    button {
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+    button:hover { background-color: #444; }
+    .btn-primary { background-color: var(--primary); color: #000; font-weight: bold; }
+    .btn-primary:hover { background-color: #a371f7; }
+    
+    /* メンバータグ */
+    .member-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 10px;
+    }
+    .member-tag {
+        background-color: #333;
+        padding: 5px 10px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 0.9rem;
+    }
+    .member-tag button {
+        background: none; border: none; color: #aaa; padding: 0; cursor: pointer; font-weight: bold;
+    }
+    .member-tag button:hover { color: #fff; }
 
-        body {
-            background-color: var(--bg-main);
-            color: var(--text-main);
-            font-family: 'Helvetica Neue', Arial, sans-serif;
-            margin: 0;
-            padding: 20px 10px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
+    /* 設定エリア */
+    .setting-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 10px;
+        gap: 10px;
+    }
+    .role-list {
+        display: none;
+        flex-direction: column;
+        gap: 5px;
+        margin-left: 20px;
+        margin-bottom: 10px;
+    }
 
-        .container {
-            width: 100%;
-            max-width: 600px;
-        }
+    /* 対戦表結果 */
+    .result-area { display: none; }
+    .team-card {
+        border-radius: 8px;
+        padding: 10px;
+        margin-bottom: 15px;
+        border-left: 5px solid;
+    }
+    .team-red { border-color: var(--red-team); background-color: rgba(232, 56, 40, 0.1); }
+    .team-blue { border-color: var(--blue-team); background-color: rgba(0, 77, 255, 0.1); }
+    .team-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .copy-btn { font-size: 0.8rem; padding: 4px 8px; }
+    
+    .player-row {
+        display: grid;
+        grid-template-columns: 1fr 80px 1.5fr;
+        gap: 10px;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--border-color);
+        align-items: center;
+    }
+    .player-row:last-child { border-bottom: none; }
+    .text-ellipsis {
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
 
-        h1, h2, h3 { margin-top: 0; }
-        
-        /* セクション共通 */
-        .section {
-            background-color: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 20px;
-        }
+    /* モーダル共通 */
+    .modal-overlay {
+        display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.8); z-index: 1000;
+        justify-content: center; align-items: center;
+    }
+    .modal-content {
+        background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px;
+        width: 90%; max-width: 600px; max-height: 80vh; overflow-y: auto;
+        position: relative; padding: 15px; box-sizing: border-box;
+    }
+    .modal-header {
+        position: sticky; top: -15px; background: var(--card-bg); padding-top: 15px; padding-bottom: 10px;
+        border-bottom: 1px solid var(--border-color); margin-bottom: 15px; z-index: 10;
+        display: flex; justify-content: space-between; align-items: center; margin-top: -15px;
+    }
+    .close-btn { background: #333; color: #fff; padding: 5px 15px; border-radius: 4px; border: none; }
 
-        /* フォーム要素 */
-        input[type="text"] {
-            background-color: #2c2c2c;
-            color: var(--text-main);
-            border: 1px solid var(--border-color);
-            padding: 8px;
-            border-radius: 4px;
-            width: calc(100% - 70px);
-        }
-        button {
-            background-color: #444;
-            color: #fff;
-            border: none;
-            padding: 8px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        button:hover { background-color: #555; }
-        button:disabled { background-color: #222; color: #666; cursor: not-allowed; }
+    /* 除外キャラ設定グリッド */
+    .role-section { margin-bottom: 20px; }
+    .role-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; font-weight: bold; }
+    .hero-grid {
+        display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px;
+    }
+    .hero-label {
+        display: block; border: 1px solid var(--border-color); border-radius: 4px;
+        padding: 5px; text-align: center; cursor: pointer; height: 40px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 0.8rem; user-select: none; transition: all 0.2s;
+    }
+    .hero-checkbox:checked + .hero-label {
+        background-color: #333; color: #666; border-color: #444;
+    }
+    .hero-checkbox { display: none; }
 
-        .btn-primary {
-            background-color: #007bff;
-            width: 100%;
-            font-size: 1.1rem;
-            padding: 12px;
-            margin-top: 10px;
-        }
-        .btn-primary:hover { background-color: #0056b3; }
-
-        /* メンバータグ */
-        #member-list {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-top: 10px;
-        }
-        .member-tag {
-            background-color: #333;
-            padding: 4px 8px 4px 12px;
-            border-radius: 999px;
-            display: inline-flex;
-            align-items: center;
-            font-size: 0.9rem;
-        }
-        .member-delete {
-            background: none;
-            border: none;
-            color: #aaa;
-            margin-left: 5px;
-            padding: 0 4px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        .member-delete:hover { color: #fff; }
-
-        /* オプション設定エリア */
-        .option-row {
-            display: flex;
-            align-items: center;
-            margin-bottom: 10px;
-            gap: 10px;
-        }
-        .role-fixed-area {
-            display: flex;
-            flex-direction: column;
-            margin-left: 20px;
-            gap: 5px;
-        }
-
-        /* モーダルウィンドウ */
-        #modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-        }
-        #modal-window {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            width: 90%;
-            max-width: 600px;
-            max-height: 80vh;
-            overflow-y: auto;
-            position: relative;
-        }
-        #modal-header {
-            position: sticky;
-            top: 0;
-            background: var(--bg-card);
-            padding: 15px;
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            z-index: 10;
-        }
-        .modal-body { padding: 15px; }
-        .role-section { margin-bottom: 20px; }
-        .role-title { font-weight: bold; margin-bottom: 10px; border-bottom: 1px solid #444; padding-bottom: 5px; }
-        .hero-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-            gap: 8px;
-        }
-        .hero-label {
-            display: flex;
-            align-items: center;
-            height: 40px;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            padding: 0 5px;
-            cursor: pointer;
-            user-select: none;
-            font-size: 0.8rem;
-            transition: background 0.2s, color 0.2s;
-        }
-        .hero-label input { display: none; }
-        .hero-label.excluded { background-color: #333; color: #777; text-decoration: line-through; }
-
-        /* 対戦表（結果）エリア */
-        .result-header { text-align: center; margin-bottom: 15px; font-size: 1.2rem; }
-        .team-card {
-            border: 2px solid;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            background-color: var(--bg-card);
-            overflow: hidden;
-        }
-        .team-red { border-color: var(--color-red); }
-        .team-blue { border-color: var(--color-blue); }
-        
-        .team-header {
-            padding: 8px 15px;
-            font-weight: bold;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .team-red .team-header { background-color: rgba(232, 56, 40, 0.2); }
-        .team-blue .team-header { background-color: rgba(0, 77, 255, 0.2); }
-
-        .player-row {
-            display: grid;
-            grid-template-columns: 1.2fr 1fr 1.5fr;
-            padding: 10px 15px;
-            border-top: 1px solid var(--border-color);
-            align-items: center;
-        }
-        .player-name, .player-hero {
-            white-space: nowrap;
-            overflow: hidden;
-        }
-        .player-role { font-size: 0.9rem; color: #aaa; text-align: center; }
-
-        .copy-btn {
-            background-color: transparent;
-            border: 1px solid currentColor;
-            padding: 4px 8px;
-            font-size: 0.8rem;
-            border-radius: 4px;
-        }
-        .team-red .copy-btn { color: var(--color-red); }
-        .team-blue .copy-btn { color: var(--color-blue); }
-
-    </style>
+    /* 設定リスト（特殊編成・固定ルール用） */
+    .setting-list { display: flex; flex-direction: column; gap: 10px; margin-top: 15px; }
+    .setting-card {
+        border: 1px solid var(--border-color); border-radius: 4px; padding: 10px;
+        display: flex; justify-content: space-between; align-items: center;
+    }
+    .setting-card.disabled { opacity: 0.5; }
+</style>
 </head>
 <body>
 
 <div class="container">
-    <h2 style="text-align:center;">カスタムバトル対戦表</h2>
-
     <div class="section">
-        <h3>メンバー管理</h3>
-        <div style="display:flex; gap: 5px;">
-            <input type="text" id="member-input" placeholder="メンバー名を入力 (Enterで追加)" maxlength="20">
-            <button id="add-member-btn" style="width: 60px;">追加</button>
+        <h2>メンバー管理</h2>
+        <div style="display: flex; gap: 10px;">
+            <input type="text" id="newMemberName" placeholder="プレイヤー名を入力" style="flex: 1;" onkeypress="if(event.key==='Enter') addMember()">
+            <button onclick="addMember()">追加</button>
         </div>
-        <div id="member-list"></div>
+        <div id="memberList" class="member-tags"></div>
     </div>
 
     <div class="section">
-        <h3>抽選設定</h3>
-        <div class="option-row">
-            <label>
-                <input type="radio" name="mode" value="2" checked> 2 vs 2 モード
-            </label>
-            <label>
-                <input type="radio" name="mode" value="3"> 3 vs 3 モード
-            </label>
+        <h2>抽選設定</h2>
+        <div class="setting-row">
+            <label>対戦モード</label>
+            <select id="matchMode" onchange="updateRoleCheckboxes()">
+                <option value="2">2 vs 2 モード</option>
+                <option value="3">3 vs 3 モード</option>
+            </select>
+        </div>
+        <div class="setting-row">
+            <label><input type="checkbox" id="hideHeroName"> カテゴリ（ロール）のみ表示</label>
         </div>
         
-        <div class="option-row">
-            <label>
-                <input type="checkbox" id="opt-hide-hero"> カテゴリ(ロール)のみ表示
-            </label>
+        <hr style="border-color: var(--border-color); margin: 15px 0;">
+        
+        <div class="setting-row">
+            <label><input type="checkbox" id="roleFixedToggle" onchange="toggleRoleFixed()"> ロール固定機能</label>
+        </div>
+        <div id="roleList" class="role-list">
+            <label><input type="checkbox" class="role-fixed-cb" value="ATTACKER" onchange="checkRoleLimit(this)"> アタッカー</label>
+            <label><input type="checkbox" class="role-fixed-cb" value="GUNNER" onchange="checkRoleLimit(this)"> ガンナー</label>
+            <label><input type="checkbox" class="role-fixed-cb" value="SPRINTER" onchange="checkRoleLimit(this)"> スプリンター</label>
+            <label><input type="checkbox" class="role-fixed-cb" value="TANK" onchange="checkRoleLimit(this)"> タンク</label>
         </div>
 
-        <div class="option-row">
-            <label>
-                <input type="checkbox" id="opt-same-role"> 同ロール選出（両チーム同じ構成）
-            </label>
+        <div class="setting-row">
+            <label><input type="checkbox" id="sameRoleToggle" onchange="toggleSameRole()"> 同ロール選出機能</label>
         </div>
 
-        <div class="option-row" style="align-items: flex-start;">
-            <label>
-                <input type="checkbox" id="opt-fix-role"> ロール固定
-            </label>
-            <div class="role-fixed-area" id="role-fixed-area" style="display: none;">
-                <label><input type="checkbox" class="fix-role-chk" value="ATTACKER"> アタッカー</label>
-                <label><input type="checkbox" class="fix-role-chk" value="GUNNER"> ガンナー</label>
-                <label><input type="checkbox" class="fix-role-chk" value="SPRINTER"> スプリンター</label>
-                <label><input type="checkbox" class="fix-role-chk" value="TANK"> タンク</label>
-            </div>
-        </div>
+        <hr style="border-color: var(--border-color); margin: 15px 0;">
 
-        <div class="option-row" style="margin-top: 15px;">
-            <button id="exclude-hero-btn">キャラクター除外設定を開く</button>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+            <button onclick="openModal('exclusionModal')">キャラクター選出対象除外設定</button>
+            <button onclick="openModal('specialCompModal'); renderSpecialComps();">特殊編成設定</button>
+            <button onclick="openModal('fixedRuleModal'); renderFixedRules();">個人別・固定ルール設定</button>
         </div>
-
-        <button id="generate-btn" class="btn-primary">チーム設定 (抽選)</button>
     </div>
 
-    <div id="result-area" class="section" style="display:none; padding: 0; background: transparent; border: none;">
-        <div class="result-header" id="result-stage">ステージ名</div>
-        <div id="team-red-container"></div>
-        <div id="team-blue-container"></div>
+    <button class="btn-primary" style="width: 100%; padding: 15px; font-size: 1.2rem;" onclick="generateTeams()">チーム設定（抽選実行）</button>
+
+    <div id="resultArea" class="section result-area" style="margin-top: 15px;">
+        <h2 style="text-align: center; margin-bottom: 5px;">対戦結果</h2>
+        <div id="stageResult" style="text-align: center; margin-bottom: 15px; font-weight: bold; color: var(--primary);"></div>
+        
+        <div class="team-card team-red">
+            <div class="team-header">
+                <h3 style="color: var(--red-team); margin: 0;">紅チーム</h3>
+                <button class="copy-btn" onclick="copyTeam('teamRedArea', this)">リストをコピー</button>
+            </div>
+            <div id="teamRedArea"></div>
+        </div>
+
+        <div class="team-card team-blue">
+            <div class="team-header">
+                <h3 style="color: var(--blue-team); margin: 0;">蒼チーム</h3>
+                <button class="copy-btn" onclick="copyTeam('teamBlueArea', this)">リストをコピー</button>
+            </div>
+            <div id="teamBlueArea"></div>
+        </div>
     </div>
 </div>
 
-<div id="modal-overlay">
-    <div id="modal-window">
-        <div id="modal-header">
-            <h3 style="margin:0;">キャラクター除外設定</h3>
-            <button id="modal-close">閉じる</button>
+<div id="exclusionModal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>キャラクター選出除外</h3>
+            <button class="close-btn" onclick="closeModal('exclusionModal')">閉じる</button>
         </div>
-        <div class="modal-body" id="modal-body">
-            </div>
+        <div id="exclusionGridArea"></div>
     </div>
 </div>
+
+<div id="specialCompModal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>特殊編成設定 (10%で発動)</h3>
+            <button class="close-btn" onclick="closeModal('specialCompModal')">閉じる</button>
+        </div>
+        <div class="setting-row">
+            <input type="text" id="scName" placeholder="組み合わせ名" style="flex:1;">
+            <select id="scCount" onchange="updateScHeroSelects()">
+                <option value="2">2人組</option>
+                <option value="3">3人組</option>
+            </select>
+        </div>
+        <div id="scHeroSelects" style="display: flex; gap: 5px; margin-bottom: 10px;"></div>
+        <button onclick="addSpecialComp()" style="width:100%;">追加</button>
+        <div id="specialCompList" class="setting-list"></div>
+    </div>
+</div>
+
+<div id="fixedRuleModal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>個人別・固定ルール設定</h3>
+            <button class="close-btn" onclick="closeModal('fixedRuleModal')">閉じる</button>
+        </div>
+        
+        <div style="margin-bottom: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 15px;">
+            <h4>参加者固定 (同一チーム化)</h4>
+            <div class="setting-row">
+                <select id="frMemberCount" onchange="updateFrMemberSelects()">
+                    <option value="2">2人</option>
+                    <option value="3">3人</option>
+                </select>
+                <button onclick="addFixedMemberRule()">追加</button>
+            </div>
+            <div id="frMemberSelects" style="display: flex; gap: 5px; margin-bottom: 5px;"></div>
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <h4>役割固定 (ロールまたはキャラ)</h4>
+            <div style="display: flex; flex-direction: column; gap: 5px; margin-bottom: 5px;">
+                <select id="frRolePlayer"></select>
+                <div style="display: flex; gap: 5px;">
+                    <select id="frRoleType" style="flex: 1;" onchange="updateFrRoleTarget()">
+                        <option value="ROLE">ロール固定</option>
+                        <option value="HERO">キャラ固定</option>
+                    </select>
+                    <select id="frRoleTarget" style="flex: 2;"></select>
+                </div>
+                <button onclick="addFixedRoleRule()">追加</button>
+            </div>
+        </div>
+        <div id="fixedRuleList" class="setting-list"></div>
+    </div>
+</div>
+
+<script src="List_Hero.js" onerror="console.warn('List_Hero.js not found. Using default data.');"></script>
+<script src="List_Stage.js" onerror="console.warn('List_Stage.js not found. Using default data.');"></script>
+<script src="List_NotOwned.js" onerror="console.warn('List_NotOwned.js not found. Using default data.');"></script>
 
 <script>
-/* =========================================================
-   JavaScript ロジック
-   ========================================================= */
+/**
+ * 定数・グローバル変数定義
+ */
+const ROLES = ['ATTACKER', 'GUNNER', 'SPRINTER', 'TANK'];
+const ROLE_NAMES = { 'ATTACKER': 'アタッカー', 'GUNNER': 'ガンナー', 'SPRINTER': 'スプリンター', 'TANK': 'タンク' };
 
-// --- 1. 定数・グローバル変数定義 ---
-// 外部ファイルがない場合のフォールバック（エラー回避用）
-const ROLES = { ATTACKER: 'アタッカー', GUNNER: 'ガンナー', SPRINTER: 'スプリンター', TANK: 'タンク' };
-const ROLE_KEYS = Object.keys(ROLES);
-const HEROES = typeof LIST_HERO !== 'undefined' ? LIST_HERO : [];
-const STAGES = typeof LIST_STAGE !== 'undefined' ? LIST_STAGE : [];
-const NOT_OWNED = typeof LIST_NOT_OWNED !== 'undefined' ? LIST_NOT_OWNED : [];
+// ダミーデータフォールバック（外部ファイルがない場合用）
+if (typeof LIST_HERO === 'undefined') {
+    window.LIST_HERO = [
+        { role: 'ATTACKER', name: 'ATK_01', jp_name: 'アタッカーA' }, { role: 'ATTACKER', name: 'ATK_02', jp_name: 'アタッカーB' },
+        { role: 'GUNNER', name: 'GUN_01', jp_name: 'ガンナーA' }, { role: 'GUNNER', name: 'GUN_02', jp_name: 'ガンナーB' },
+        { role: 'SPRINTER', name: 'SPR_01', jp_name: 'スプリンターA' }, { role: 'SPRINTER', name: 'SPR_02', jp_name: 'スプリンターB' },
+        { role: 'TANK', name: 'TNK_01', jp_name: 'タンクA' }, { role: 'TANK', name: 'TNK_02', jp_name: 'タンクB' }
+    ];
+}
+if (typeof LIST_STAGE === 'undefined') {
+    window.LIST_STAGE = [ { mode: 2, name: 'st_2_1', jp_name: '2v2ステージA' }, { mode: 3, name: 'st_3_1', jp_name: '3v3ステージA' } ];
+}
+if (typeof LIST_NOT_OWNED === 'undefined') {
+    window.LIST_NOT_OWNED = [];
+}
 
-// 内部状態
-let members = [];
-let excludedHeroes = new Set(); // 除外されたヒーロー定義名
-let matchHistory = []; // デバッグ用全体履歴
+// 永続化データ
+let members = JSON.parse(localStorage.getItem('compass_members')) || [];
+let excludedHeroes = JSON.parse(localStorage.getItem('compass_excluded_heroes')) || [];
+let specialComps = JSON.parse(localStorage.getItem('compass_special_comps')) || [];
+let fixedRules = JSON.parse(localStorage.getItem('compass_fixed_rules')) || [];
 
-// メモリ上の履歴（重複対策用）
-let state = {
-    standbyScores: {}, // 待機スコア { "プレイヤー名": score }
-    teamHistory: [],   // 過去3試合のチーム分け履歴 [ [{red:[], blue:[]}], ... ]
-    roleHistory: {},   // 直近2試合のロール履歴 { "プレイヤー名": ["ATTACKER", "TANK"] }
-    heroHistory: {}    // 過去10試合のヒーロー履歴 { "プレイヤー名": ["HERO_01", ...] }
+// 履歴データ
+let waitScores = JSON.parse(localStorage.getItem('compass_history_waiting')) || {};
+let teamHistory = JSON.parse(localStorage.getItem('compass_history_teammates')) || []; // [[red], [blue]] の配列、最大3件
+let roleHistory = JSON.parse(localStorage.getItem('compass_history_roles')) || {}; // { name: ['ROLE1', 'ROLE2'] }
+let heroHistory = JSON.parse(localStorage.getItem('compass_history_heroes')) || {}; // { name: ['HERO1', ...] }
+let matchHistoryAll = JSON.parse(localStorage.getItem('compass_history_all')) || []; // dumpHistory用
+
+/**
+ * 初期化処理
+ */
+window.onload = () => {
+    renderMembers();
+    buildExclusionGrid();
+    updateFrMemberSelects();
+    updateFrRolePlayerOptions();
+    updateFrRoleTarget();
+    updateScHeroSelects();
 };
 
-// --- 2. 初期化処理・UIバインディング ---
-document.addEventListener('DOMContentLoaded', () => {
-    loadMembers();
-    setupEventListeners();
-    buildExcludeModal();
-});
-
-function setupEventListeners() {
-    // メンバー追加
-    const addBtn = document.getElementById('add-member-btn');
-    const memberInput = document.getElementById('member-input');
-    addBtn.addEventListener('click', addMember);
-    memberInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') addMember();
-    });
-
-    // オプション排他・連動制御
-    const modeRadios = document.getElementsByName('mode');
-    const optSameRole = document.getElementById('opt-same-role');
-    const optFixRole = document.getElementById('opt-fix-role');
-    const roleFixedArea = document.getElementById('role-fixed-area');
-    const fixRoleChks = document.querySelectorAll('.fix-role-chk');
-
-    modeRadios.forEach(r => r.addEventListener('change', updateRoleCheckboxes));
-    
-    optSameRole.addEventListener('change', (e) => {
-        if (e.target.checked) {
-            optFixRole.checked = false;
-            roleFixedArea.style.display = 'none';
-        }
-    });
-
-    optFixRole.addEventListener('change', (e) => {
-        if (e.target.checked) {
-            optSameRole.checked = false;
-            roleFixedArea.style.display = 'flex';
-        } else {
-            roleFixedArea.style.display = 'none';
-        }
-        updateRoleCheckboxes();
-    });
-
-    fixRoleChks.forEach(chk => {
-        chk.addEventListener('change', updateRoleCheckboxes);
-    });
-
-    // モーダル制御
-    document.getElementById('exclude-hero-btn').addEventListener('click', () => {
-        document.getElementById('modal-overlay').style.display = 'flex';
-    });
-    document.getElementById('modal-close').addEventListener('click', () => {
-        document.getElementById('modal-overlay').style.display = 'none';
-    });
-
-    // 抽選実行
-    document.getElementById('generate-btn').addEventListener('click', () => executeMatching(false));
-}
-
-// ロール固定の最大数制限制御
-function updateRoleCheckboxes() {
-    const maxSelect = parseInt(document.querySelector('input[name="mode"]:checked').value);
-    const checkedCount = document.querySelectorAll('.fix-role-chk:checked').length;
-    const chks = document.querySelectorAll('.fix-role-chk');
-
-    chks.forEach(chk => {
-        if (!chk.checked && checkedCount >= maxSelect) {
-            chk.disabled = true;
-        } else {
-            chk.disabled = false;
-        }
-    });
-}
-
-// --- 3. メンバー管理機能 ---
-function loadMembers() {
-    const saved = localStorage.getItem('compass_members');
-    if (saved) {
-        members = JSON.parse(saved);
-        renderMembers();
-    }
-}
-
-function saveMembers() {
+/**
+ * データ保存ラッパー
+ */
+function saveData() {
     localStorage.setItem('compass_members', JSON.stringify(members));
+    localStorage.setItem('compass_excluded_heroes', JSON.stringify(excludedHeroes));
+    localStorage.setItem('compass_special_comps', JSON.stringify(specialComps));
+    localStorage.setItem('compass_fixed_rules', JSON.stringify(fixedRules));
+    localStorage.setItem('compass_history_waiting', JSON.stringify(waitScores));
+    localStorage.setItem('compass_history_teammates', JSON.stringify(teamHistory));
+    localStorage.setItem('compass_history_roles', JSON.stringify(roleHistory));
+    localStorage.setItem('compass_history_heroes', JSON.stringify(heroHistory));
+    localStorage.setItem('compass_history_all', JSON.stringify(matchHistoryAll));
 }
 
+/**
+ * UI制御：メンバー管理
+ */
 function addMember() {
-    const input = document.getElementById('member-input');
+    const input = document.getElementById('newMemberName');
     const name = input.value.trim();
-    if (!name) return;
-    if (members.includes(name)) {
-        alert('既に登録されています。');
-        return;
+    if (name && !members.includes(name)) {
+        members.push(name);
+        if (!(name in waitScores)) waitScores[name] = 0;
+        input.value = '';
+        saveData();
+        renderMembers();
+        updateFrMemberSelects();
+        updateFrRolePlayerOptions();
     }
-    members.push(name);
-    if (!(name in state.standbyScores)) state.standbyScores[name] = 0;
-    saveMembers();
-    renderMembers();
-    input.value = '';
 }
 
 function removeMember(name) {
     members = members.filter(m => m !== name);
-    saveMembers();
+    // 関連する固定ルールも削除
+    fixedRules = fixedRules.filter(r => !(r.targets && r.targets.includes(name)));
+    saveData();
     renderMembers();
+    updateFrMemberSelects();
+    updateFrRolePlayerOptions();
 }
 
 function renderMembers() {
-    const list = document.getElementById('member-list');
-    list.innerHTML = ''; // 構造リセット
+    const container = document.getElementById('memberList');
+    container.innerHTML = '';
     members.forEach(name => {
-        const tag = document.createElement('div');
-        tag.className = 'member-tag';
-        tag.textContent = name; // XSS対策: textContentを使用
-
-        const delBtn = document.createElement('button');
-        delBtn.className = 'member-delete';
-        delBtn.textContent = '×';
-        delBtn.onclick = () => removeMember(name);
-        
-        tag.appendChild(delBtn);
-        list.appendChild(tag);
+        const div = document.createElement('div');
+        div.className = 'member-tag';
+        const span = document.createElement('span');
+        span.textContent = name; // XSS対策
+        const btn = document.createElement('button');
+        btn.textContent = '×';
+        btn.onclick = () => removeMember(name);
+        div.appendChild(span);
+        div.appendChild(btn);
+        container.appendChild(div);
     });
 }
 
-// --- 4. キャラクター除外 モーダル生成 ---
-function buildExcludeModal() {
-    const body = document.getElementById('modal-body');
-    body.innerHTML = '';
+/**
+ * UI制御：抽選設定オプション
+ */
+function toggleRoleFixed() {
+    const isChecked = document.getElementById('roleFixedToggle').checked;
+    const sameRoleToggle = document.getElementById('sameRoleToggle');
+    document.getElementById('roleList').style.display = isChecked ? 'flex' : 'none';
+    if (isChecked) {
+        sameRoleToggle.checked = false;
+        sameRoleToggle.disabled = true;
+    } else {
+        sameRoleToggle.disabled = false;
+    }
+    updateRoleCheckboxes();
+}
 
-    ROLE_KEYS.forEach(roleKey => {
-        // ロールごとのヒーロー抽出
-        const heroesInRole = HEROES.filter(h => h.role === roleKey);
-        if (heroesInRole.length === 0) return;
+function toggleSameRole() {
+    const isChecked = document.getElementById('sameRoleToggle').checked;
+    const roleFixedToggle = document.getElementById('roleFixedToggle');
+    if (isChecked) {
+        roleFixedToggle.checked = false;
+        roleFixedToggle.disabled = true;
+        document.getElementById('roleList').style.display = 'none';
+    } else {
+        roleFixedToggle.disabled = false;
+    }
+}
+
+function updateRoleCheckboxes() {
+    const mode = parseInt(document.getElementById('matchMode').value, 10);
+    const cbs = document.querySelectorAll('.role-fixed-cb');
+    let checkedCount = 0;
+    cbs.forEach(cb => { if(cb.checked) checkedCount++; });
+    cbs.forEach(cb => {
+        if (!cb.checked) {
+            cb.disabled = checkedCount >= mode;
+        } else {
+            cb.disabled = false;
+        }
+    });
+}
+
+function checkRoleLimit(clickedCb) {
+    updateRoleCheckboxes();
+}
+
+/**
+ * モーダル制御
+ */
+function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+/**
+ * キャラ除外設定
+ */
+function buildExclusionGrid() {
+    const container = document.getElementById('exclusionGridArea');
+    container.innerHTML = '';
+    
+    ROLES.forEach(role => {
+        const heroes = LIST_HERO.filter(h => h.role === role);
+        if (heroes.length === 0) return;
 
         const section = document.createElement('div');
         section.className = 'role-section';
-
-        const titleDiv = document.createElement('div');
-        titleDiv.className = 'role-title';
-        const selectAllChk = document.createElement('input');
-        selectAllChk.type = 'checkbox';
-        selectAllChk.id = `chk-all-${roleKey}`;
-        const titleLabel = document.createElement('label');
-        titleLabel.htmlFor = `chk-all-${roleKey}`;
-        titleLabel.textContent = ` ${ROLES[roleKey]} (全選択/解除)`;
-        titleLabel.style.cursor = 'pointer';
         
-        titleDiv.appendChild(selectAllChk);
-        titleDiv.appendChild(titleLabel);
-        section.appendChild(titleDiv);
+        const header = document.createElement('div');
+        header.className = 'role-header';
+        const checkAll = document.createElement('input');
+        checkAll.type = 'checkbox';
+        checkAll.onchange = (e) => toggleRoleExclusion(role, e.target.checked);
+        const title = document.createElement('span');
+        title.textContent = `${ROLE_NAMES[role]} (全選択/解除)`;
+        header.appendChild(checkAll);
+        header.appendChild(title);
+        section.appendChild(header);
 
         const grid = document.createElement('div');
         grid.className = 'hero-grid';
-
-        const heroCheckboxes = [];
-
-        heroesInRole.forEach(hero => {
+        heroes.forEach(h => {
+            const wrapper = document.createElement('div');
+            const cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.id = `ex_${h.name}`;
+            cb.className = 'hero-checkbox';
+            cb.value = h.name;
+            cb.checked = excludedHeroes.includes(h.name);
+            cb.onchange = (e) => updateExclusion(h.name, e.target.checked);
+            
             const label = document.createElement('label');
-            label.className = 'hero-label';
+            label.htmlFor = cb.id;
+            label.className = 'hero-label text-ellipsis';
+            label.textContent = h.jp_name;
             
-            const chk = document.createElement('input');
-            chk.type = 'checkbox';
-            chk.value = hero.name;
-            
-            // UIと内部データ(Set)の同期
-            chk.addEventListener('change', (e) => {
-                if (e.target.checked) {
-                    excludedHeroes.add(hero.name);
-                    label.classList.add('excluded');
-                } else {
-                    excludedHeroes.delete(hero.name);
-                    label.classList.remove('excluded');
-                }
-                // 全選択チェックボックスの半端状態更新
-                const allChecked = heroCheckboxes.every(c => c.checked);
-                selectAllChk.checked = allChecked;
-            });
-
-            label.appendChild(chk);
-            label.appendChild(document.createTextNode(hero.jp_name));
-            grid.appendChild(label);
-            heroCheckboxes.push(chk);
+            wrapper.appendChild(cb);
+            wrapper.appendChild(label);
+            grid.appendChild(wrapper);
         });
-
-        // 全選択の連動
-        selectAllChk.addEventListener('change', (e) => {
-            const isChecked = e.target.checked;
-            heroCheckboxes.forEach(chk => {
-                if (chk.checked !== isChecked) {
-                    chk.checked = isChecked;
-                    chk.dispatchEvent(new Event('change')); // 個別のイベント発火
-                }
-            });
-        });
-
         section.appendChild(grid);
-        body.appendChild(section);
+        container.appendChild(section);
     });
 }
 
-// --- 5. ユーティリティ・アルゴリズム関数 ---
+function updateExclusion(heroName, isExcluded) {
+    if (isExcluded) {
+        if (!excludedHeroes.includes(heroName)) excludedHeroes.push(heroName);
+    } else {
+        excludedHeroes = excludedHeroes.filter(h => h !== heroName);
+    }
+    saveData();
+}
 
-// 配列シャッフル (Fisher-Yates)
+function toggleRoleExclusion(role, isExcluded) {
+    const heroes = LIST_HERO.filter(h => h.role === role);
+    heroes.forEach(h => {
+        const cb = document.getElementById(`ex_${h.name}`);
+        if (cb) {
+            cb.checked = isExcluded;
+            updateExclusion(h.name, isExcluded);
+        }
+    });
+}
+
+/**
+ * 特殊編成設定
+ */
+function updateScHeroSelects() {
+    const count = parseInt(document.getElementById('scCount').value, 10);
+    const container = document.getElementById('scHeroSelects');
+    container.innerHTML = '';
+    for(let i=0; i<count; i++) {
+        const sel = document.createElement('select');
+        sel.style.flex = "1";
+        LIST_HERO.forEach(h => {
+            const opt = document.createElement('option');
+            opt.value = h.name; opt.textContent = h.jp_name;
+            sel.appendChild(opt);
+        });
+        container.appendChild(sel);
+    }
+}
+
+function addSpecialComp() {
+    const nameInput = document.getElementById('scName').value.trim();
+    if (!nameInput) return alert('組み合わせ名を入力してください');
+    const selects = document.getElementById('scHeroSelects').querySelectorAll('select');
+    let heroes = Array.from(selects).map(s => s.value);
+    
+    specialComps.push({ id: Date.now(), name: nameInput, heroes: heroes, enabled: true });
+    saveData();
+    document.getElementById('scName').value = '';
+    renderSpecialComps();
+}
+
+function renderSpecialComps() {
+    const container = document.getElementById('specialCompList');
+    container.innerHTML = '';
+    specialComps.forEach(sc => {
+        const div = document.createElement('div');
+        div.className = `setting-card ${sc.enabled ? '' : 'disabled'}`;
+        
+        const info = document.createElement('div');
+        const hNames = sc.heroes.map(hn => LIST_HERO.find(h=>h.name===hn)?.jp_name || hn).join(' + ');
+        const text = document.createElement('span');
+        text.textContent = `${sc.name} [${hNames}]`;
+        info.appendChild(text);
+
+        const controls = document.createElement('div');
+        const toggleBtn = document.createElement('button');
+        toggleBtn.textContent = sc.enabled ? '無効化' : '有効化';
+        toggleBtn.onclick = () => { sc.enabled = !sc.enabled; saveData(); renderSpecialComps(); };
+        const delBtn = document.createElement('button');
+        delBtn.textContent = '削除';
+        delBtn.onclick = () => { specialComps = specialComps.filter(s => s.id !== sc.id); saveData(); renderSpecialComps(); };
+        
+        controls.appendChild(toggleBtn); controls.appendChild(delBtn);
+        div.appendChild(info); div.appendChild(controls);
+        container.appendChild(div);
+    });
+}
+
+/**
+ * 個人別・固定ルール設定
+ */
+function updateFrMemberSelects() {
+    const count = parseInt(document.getElementById('frMemberCount').value, 10);
+    const container = document.getElementById('frMemberSelects');
+    container.innerHTML = '';
+    for(let i=0; i<count; i++) {
+        const sel = document.createElement('select');
+        sel.style.flex = "1";
+        members.forEach(m => {
+            const opt = document.createElement('option');
+            opt.value = m; opt.textContent = m;
+            sel.appendChild(opt);
+        });
+        container.appendChild(sel);
+    }
+}
+
+function updateFrRolePlayerOptions() {
+    const sel = document.getElementById('frRolePlayer');
+    sel.innerHTML = '';
+    members.forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m; opt.textContent = m;
+        sel.appendChild(opt);
+    });
+}
+
+function updateFrRoleTarget() {
+    const type = document.getElementById('frRoleType').value;
+    const targetSel = document.getElementById('frRoleTarget');
+    targetSel.innerHTML = '';
+    if (type === 'ROLE') {
+        ROLES.forEach(r => {
+            const opt = document.createElement('option');
+            opt.value = r; opt.textContent = ROLE_NAMES[r];
+            targetSel.appendChild(opt);
+        });
+    } else {
+        LIST_HERO.forEach(h => {
+            const opt = document.createElement('option');
+            opt.value = h.name; opt.textContent = h.jp_name;
+            targetSel.appendChild(opt);
+        });
+    }
+}
+
+function addFixedMemberRule() {
+    const selects = document.getElementById('frMemberSelects').querySelectorAll('select');
+    let targets = Array.from(selects).map(s => s.value);
+    if (new Set(targets).size !== targets.length) return alert('参加者が重複しています');
+    fixedRules.push({ id: Date.now(), type: 'MEMBER', targets: targets, enabled: true });
+    saveData(); renderFixedRules();
+}
+
+function addFixedRoleRule() {
+    const player = document.getElementById('frRolePlayer').value;
+    const type = document.getElementById('frRoleType').value;
+    const target = document.getElementById('frRoleTarget').value;
+    if (!player) return;
+    fixedRules.push({ id: Date.now(), type: type, targets: [player], targetVal: target, enabled: true });
+    saveData(); renderFixedRules();
+}
+
+function renderFixedRules() {
+    const container = document.getElementById('fixedRuleList');
+    container.innerHTML = '';
+    fixedRules.forEach(rule => {
+        const div = document.createElement('div');
+        div.className = `setting-card ${rule.enabled ? '' : 'disabled'}`;
+        
+        const text = document.createElement('span');
+        if (rule.type === 'MEMBER') {
+            text.textContent = `[参加者固定] ${rule.targets.join(' + ')}`;
+        } else if (rule.type === 'ROLE') {
+            text.textContent = `[ロール固定] ${rule.targets[0]} -> ${ROLE_NAMES[rule.targetVal]}`;
+        } else {
+            const hName = LIST_HERO.find(h=>h.name===rule.targetVal)?.jp_name || rule.targetVal;
+            text.textContent = `[キャラ固定] ${rule.targets[0]} -> ${hName}`;
+        }
+        
+        const controls = document.createElement('div');
+        const toggleBtn = document.createElement('button');
+        toggleBtn.textContent = rule.enabled ? '無効化' : '有効化';
+        toggleBtn.onclick = () => { rule.enabled = !rule.enabled; saveData(); renderFixedRules(); };
+        const delBtn = document.createElement('button');
+        delBtn.textContent = '削除';
+        delBtn.onclick = () => { fixedRules = fixedRules.filter(r => r.id !== rule.id); saveData(); renderFixedRules(); };
+        
+        controls.appendChild(toggleBtn); controls.appendChild(delBtn);
+        div.appendChild(text); div.appendChild(controls);
+        container.appendChild(div);
+    });
+}
+
+/**
+ * ユーティリティ配列シャッフル
+ */
 function shuffle(array) {
     let ary = [...array];
     for (let i = ary.length - 1; i > 0; i--) {
@@ -532,379 +703,372 @@ function shuffle(array) {
     return ary;
 }
 
-// 組み合わせ生成 (nCr)
-function getCombinations(array, size) {
-    const result = [];
-    function backtrack(start, combo) {
-        if (combo.length === size) {
-            result.push([...combo]);
-            return;
-        }
-        for (let i = start; i < array.length; i++) {
-            combo.push(array[i]);
-            backtrack(i + 1, combo);
-            combo.pop();
-        }
-    }
-    backtrack(0, []);
-    return result;
-}
-
-// 順列生成 (nPr)
-function getPermutations(array) {
-    const result = [];
-    function backtrack(path, used) {
-        if (path.length === array.length) {
-            result.push([...path]);
-            return;
-        }
-        for (let i = 0; i < array.length; i++) {
-            if (used[i]) continue;
-            used[i] = true;
-            path.push(array[i]);
-            backtrack(path, used);
-            path.pop();
-            used[i] = false;
-        }
-    }
-    backtrack([], []);
-    return result;
-}
-
-// --- 6. 抽選・マッチング メインロジック ---
-
-function executeMatching(isSilent = false) {
-    const mode = parseInt(document.querySelector('input[name="mode"]:checked').value);
+/**
+ * メイン抽選ロジック
+ */
+function generateTeams() {
+    const mode = parseInt(document.getElementById('matchMode').value, 10);
     const requiredPlayers = mode * 2;
 
     if (members.length < requiredPlayers) {
-        if (!isSilent) alert(`メンバーが足りません。${requiredPlayers}名以上登録してください。`);
-        return null;
+        alert(`登録メンバー数が足りません。${requiredPlayers}名以上登録してください。`);
+        return;
     }
 
-    // 1. ステージ抽選
-    const availableStages = STAGES.filter(s => s.mode === mode);
-    let stage = null;
-    if (availableStages.length > 0) {
-        stage = availableStages[Math.floor(Math.random() * availableStages.length)];
+    // 1. プレイヤー選出 (待機スコア + メンバー固定考慮)
+    let pool = shuffle([...members]);
+    pool.sort((a, b) => (waitScores[b] || 0) - (waitScores[a] || 0));
+
+    let selectedPlayers = [];
+    for (let p of pool) {
+        if (selectedPlayers.length >= requiredPlayers) break;
+        if (selectedPlayers.includes(p)) continue;
+
+        let memberRule = fixedRules.find(r => r.type === 'MEMBER' && r.enabled && r.targets.includes(p));
+        if (memberRule) {
+            let needed = memberRule.targets.filter(t => !selectedPlayers.includes(t) && members.includes(t));
+            if (selectedPlayers.length + needed.length <= requiredPlayers) {
+                selectedPlayers.push(...needed);
+            }
+            // 定員オーバーならスキップ
+        } else {
+            selectedPlayers.push(p);
+        }
     }
 
-    // 2. プレイヤー選出（待機スコア制）
-    // 参加していない人(スコア大)を優先
-    let sortedMembers = [...members].sort((a, b) => {
-        const scoreA = state.standbyScores[a] || 0;
-        const scoreB = state.standbyScores[b] || 0;
-        if (scoreB !== scoreA) return scoreB - scoreA;
-        // 同点の場合はランダム
-        return Math.random() - 0.5;
+    // 待機スコア更新
+    members.forEach(m => {
+        if (selectedPlayers.includes(m)) waitScores[m] = 0;
+        else waitScores[m] = (waitScores[m] || 0) + 1;
     });
 
-    const selectedPlayers = sortedMembers.slice(0, requiredPlayers);
-    const unselectedPlayers = sortedMembers.slice(requiredPlayers);
+    // 2. チーム分け (アンチ・ペアリング + メンバー固定考慮)
+    const allCombinations = getTeamCombinations(selectedPlayers, mode);
+    let validCombinations = allCombinations.filter(comb => {
+        // 固定ルールを満たしているかチェック
+        let valid = true;
+        const activeMemberRules = fixedRules.filter(r => r.type === 'MEMBER' && r.enabled);
+        for (let rule of activeMemberRules) {
+            let inRed = rule.targets.every(t => comb[0].includes(t) || !selectedPlayers.includes(t));
+            let inBlue = rule.targets.every(t => comb[1].includes(t) || !selectedPlayers.includes(t));
+            if (!inRed && !inBlue) { valid = false; break; } // バラバラになったら無効
+        }
+        return valid;
+    });
 
-    // 3. チーム分け（アンチ・ペアリング）
-    // selectedPlayersを2分割する全パターンを生成
-    const combos = getCombinations(selectedPlayers, mode);
-    // 重複を省くため、先頭の要素が必ずTeam Aに含まれるパターンのみ抽出
-    const firstPlayer = selectedPlayers[0];
-    const validCombos = combos.filter(c => c.includes(firstPlayer));
+    if (validCombinations.length === 0) validCombinations = allCombinations; // フォールバック
 
-    let bestPartitions = [];
+    // ペナルティ計算
     let minPenalty = Infinity;
-
-    validCombos.forEach(teamA => {
-        const teamB = selectedPlayers.filter(p => !teamA.includes(p));
+    let bestCombinations = [];
+    validCombinations.forEach(comb => {
         let penalty = 0;
-
-        // ペナルティ計算: 過去3試合のチーム履歴を参照
-        state.teamHistory.forEach(hist => {
-            [teamA, teamB].forEach(team => {
-                // 同じチームにいたペアを探す (nC2)
-                const pairs = getCombinations(team, 2);
-                pairs.forEach(pair => {
-                    const inRed = hist.red.includes(pair[0]) && hist.red.includes(pair[1]);
-                    const inBlue = hist.blue.includes(pair[0]) && hist.blue.includes(pair[1]);
-                    if (inRed || inBlue) penalty += 1;
-                });
+        teamHistory.forEach(historyMatch => { // [[red_p1, red_p2], [blue_p1, blue_p2]]
+            comb.forEach(team => {
+                let overlap = historyMatch[0].filter(p => team.includes(p)).length;
+                if(overlap >= 2) penalty++;
+                overlap = historyMatch[1].filter(p => team.includes(p)).length;
+                if(overlap >= 2) penalty++;
             });
         });
-
         if (penalty < minPenalty) {
             minPenalty = penalty;
-            bestPartitions = [{ red: teamA, blue: teamB }];
+            bestCombinations = [comb];
         } else if (penalty === minPenalty) {
-            bestPartitions.push({ red: teamA, blue: teamB });
+            bestCombinations.push(comb);
         }
     });
 
-    // 最小ペナルティの中からランダムに選択
-    const partition = bestPartitions[Math.floor(Math.random() * bestPartitions.length)];
+    const finalTeams = shuffle(bestCombinations)[0];
+    const teamRedPlayers = finalTeams[0];
+    const teamBluePlayers = finalTeams[1];
 
-    // 4. ロール枠の決定
-    const optSameRole = document.getElementById('opt-same-role').checked;
-    const optFixRole = document.getElementById('opt-fix-role').checked;
+    // ステージ抽選
+    const stages = LIST_STAGE.filter(s => s.mode === mode);
+    const selectedStage = stages[Math.floor(Math.random() * stages.length)];
+
+    // 3. ロール枠とキャラの割り当て
+    const teamRedData = assignRolesAndHeroes(teamRedPlayers, mode, 'RED');
+    const teamBlueData = assignRolesAndHeroes(teamBluePlayers, mode, 'BLUE', teamRedData.roleAllocations);
+
+    // 履歴更新
+    teamHistory.unshift([teamRedPlayers, teamBluePlayers]);
+    if (teamHistory.length > 3) teamHistory.pop();
     
-    let redRoles = [];
-    let blueRoles = [];
+    let matchNo = matchHistoryAll.length + 1;
+    [...teamRedData.results, ...teamBlueData.results].forEach(res => {
+        let p = res.player;
+        if (!roleHistory[p]) roleHistory[p] = [];
+        roleHistory[p].unshift(res.role);
+        if (roleHistory[p].length > 2) roleHistory[p].pop();
 
-    if (optFixRole) {
-        // ロール固定
-        const fixedChks = Array.from(document.querySelectorAll('.fix-role-chk:checked')).map(c => c.value);
-        let remainingRoles = ROLE_KEYS.filter(r => !fixedChks.includes(r));
-        
-        // RedとBlueそれぞれ、固定枠＋余りをランダム割り当て
-        const generateTeamRoles = () => {
-            let roles = [...fixedChks];
-            let rem = shuffle([...remainingRoles]);
-            while(roles.length < mode) {
-                roles.push(rem.pop());
-            }
-            return roles;
-        };
-        redRoles = generateTeamRoles();
-        blueRoles = generateTeamRoles();
-    } else if (optSameRole) {
-        // 同ロール選出
-        let shuffled = shuffle([...ROLE_KEYS]);
-        redRoles = shuffled.slice(0, mode);
-        blueRoles = [...redRoles];
-    } else {
-        // 通常ランダム
-        redRoles = shuffle([...ROLE_KEYS]).slice(0, mode);
-        blueRoles = shuffle([...ROLE_KEYS]).slice(0, mode);
-    }
+        if (!heroHistory[p]) heroHistory[p] = [];
+        heroHistory[p].unshift(res.hero.name);
+        if (heroHistory[p].length > 10) heroHistory[p].pop();
 
-    // 5. ロールの割り当て（直近履歴回避）
-    const assignRoles = (teamPlayers, roleFrame) => {
-        const perms = getPermutations(roleFrame);
-        let bestAssignments = [];
-        let minRolePenalty = Infinity;
-
-        perms.forEach(permRoles => {
-            let penalty = 0;
-            teamPlayers.forEach((player, i) => {
-                const assignedRole = permRoles[i];
-                const hist = state.roleHistory[player] || [];
-                // 過去2試合の履歴に同じロールがあればペナルティ
-                hist.forEach(h => { if (h === assignedRole) penalty += 1; });
-            });
-            
-            if (penalty < minRolePenalty) {
-                minRolePenalty = penalty;
-                bestAssignments = [permRoles];
-            } else if (penalty === minRolePenalty) {
-                bestAssignments.push(permRoles);
-            }
+        matchHistoryAll.push({
+            no: matchNo,
+            team: teamRedPlayers.includes(p) ? '紅' : '蒼',
+            player: p,
+            role: ROLE_NAMES[res.role],
+            hero: res.hero.jp_name
         });
-        return bestAssignments[Math.floor(Math.random() * bestAssignments.length)];
-    };
-
-    const redRoleAssignment = assignRoles(partition.red, redRoles);
-    const blueRoleAssignment = assignRoles(partition.blue, blueRoles);
-
-    // 6. ヒーローの割り当て (LRU方式)
-    const assignHero = (player, role) => {
-        let candidates = HEROES.filter(h => h.role === role && !excludedHeroes.has(h.name));
-        
-        // 個人除外リスト (LIST_NOT_OWNED) の適用
-        const userNotOwned = NOT_OWNED.filter(n => n.player_jp_name === player).map(n => n.hero_name);
-        candidates = candidates.filter(h => !userNotOwned.includes(h.name));
-
-        // 候補ゼロフォールバック (除外設定が厳しすぎる場合、ルール無視で全キャラから抽出)
-        if (candidates.length === 0) {
-            candidates = HEROES.filter(h => h.role === role);
-        }
-        if (candidates.length === 0) return { jp_name: "不明" };
-
-        const hist = state.heroHistory[player] || [];
-        
-        // 履歴にないヒーローを優先
-        let unusedCandidates = candidates.filter(h => !hist.includes(h.name));
-        
-        if (unusedCandidates.length > 0) {
-            return unusedCandidates[Math.floor(Math.random() * unusedCandidates.length)];
-        } else {
-            // 全て使用済みの場合は、最も古い履歴（histの先頭に近い）ものを選ぶ
-            // hist配列は [古い, ..., 新しい]
-            candidates.sort((a, b) => {
-                let idxA = hist.indexOf(a.name);
-                let idxB = hist.indexOf(b.name);
-                if(idxA === -1) idxA = -1;
-                if(idxB === -1) idxB = -1;
-                return idxA - idxB; 
-            });
-            // 同一古さ（複数ある場合）の中からランダム
-            const oldestIdx = hist.indexOf(candidates[0].name);
-            const oldestCandidates = candidates.filter(h => hist.indexOf(h.name) === oldestIdx);
-            return oldestCandidates[Math.floor(Math.random() * oldestCandidates.length)];
-        }
-    };
-
-    const buildTeamData = (players, assignedRoles) => {
-        let teamData = [];
-        players.forEach((player, i) => {
-            const role = assignedRoles[i];
-            const hero = assignHero(player, role);
-            teamData.push({ player, role, hero });
-            
-            // 履歴の更新
-            if(!isSilent) {
-                if(!state.roleHistory[player]) state.roleHistory[player] = [];
-                state.roleHistory[player].push(role);
-                if(state.roleHistory[player].length > 2) state.roleHistory[player].shift();
-
-                if(!state.heroHistory[player]) state.heroHistory[player] = [];
-                if(hero.name) {
-                    state.heroHistory[player] = state.heroHistory[player].filter(n => n !== hero.name); // 重複削除
-                    state.heroHistory[player].push(hero.name);
-                    if(state.heroHistory[player].length > 10) state.heroHistory[player].shift();
-                }
-            }
-        });
-        
-        // アタッカー→ガンナー→スプリンター→タンクの順にソート
-        const order = { 'ATTACKER': 1, 'GUNNER': 2, 'SPRINTER': 3, 'TANK': 4 };
-        teamData.sort((a, b) => order[a.role] - order[b.role]);
-        return teamData;
-    };
-
-    const redResult = buildTeamData(partition.red, redRoleAssignment);
-    const blueResult = buildTeamData(partition.blue, blueRoleAssignment);
-
-    // 7. 状態更新（サイレントモードでなければ）
-    if (!isSilent) {
-        selectedPlayers.forEach(p => state.standbyScores[p] = 0);
-        unselectedPlayers.forEach(p => state.standbyScores[p] = (state.standbyScores[p] || 0) + 1);
-
-        state.teamHistory.push({ red: partition.red, blue: partition.blue });
-        if(state.teamHistory.length > 3) state.teamHistory.shift();
-
-        // 統計用履歴へ追加
-        const matchNo = matchHistory.length + 1;
-        redResult.forEach(r => matchHistory.push([matchNo, '紅', r.player, ROLES[r.role], r.hero.jp_name]));
-        blueResult.forEach(r => matchHistory.push([matchNo, '蒼', r.player, ROLES[r.role], r.hero.jp_name]));
-
-        // 描画
-        renderResult(stage, redResult, blueResult);
-    }
-
-    return { red: redResult, blue: blueResult };
-}
-
-// --- 7. 結果表示 ---
-function renderResult(stage, redData, blueData) {
-    const area = document.getElementById('result-area');
-    area.style.display = 'block';
-
-    const stageEl = document.getElementById('result-stage');
-    stageEl.textContent = stage ? `ステージ: ${stage.jp_name}` : 'ステージ指定なし';
-
-    const buildHtml = (teamId, teamName, data) => {
-        const container = document.getElementById(`team-${teamId}-container`);
-        container.className = `team-card team-${teamId}`;
-        container.innerHTML = '';
-
-        // ヘッダー
-        const header = document.createElement('div');
-        header.className = 'team-header';
-        
-        const titleSpan = document.createElement('span');
-        titleSpan.textContent = `${teamName}チーム`;
-        
-        const copyBtn = document.createElement('button');
-        copyBtn.className = 'copy-btn';
-        copyBtn.textContent = 'リストをコピー';
-        copyBtn.onclick = () => {
-            const listStr = `${teamName}チーム：${data.map(d => d.player).join('、')}`;
-            navigator.clipboard.writeText(listStr).then(() => {
-                copyBtn.textContent = 'コピーしました！';
-                copyBtn.style.backgroundColor = teamId === 'red' ? '#e83828' : '#004dff';
-                copyBtn.style.color = '#fff';
-                setTimeout(() => {
-                    copyBtn.textContent = 'リストをコピー';
-                    copyBtn.style.backgroundColor = 'transparent';
-                    copyBtn.style.color = '';
-                }, 2000);
-            }).catch(() => alert('コピーに失敗しました'));
-        };
-
-        header.appendChild(titleSpan);
-        header.appendChild(copyBtn);
-        container.appendChild(header);
-
-        // オプション：カテゴリのみ表示
-        const hideHero = document.getElementById('opt-hide-hero').checked;
-
-        // 行の生成
-        data.forEach(d => {
-            const row = document.createElement('div');
-            row.className = 'player-row';
-
-            const nameDiv = document.createElement('div');
-            nameDiv.className = 'player-name';
-            nameDiv.textContent = d.player;
-            
-            const roleDiv = document.createElement('div');
-            roleDiv.className = 'player-role';
-            roleDiv.textContent = ROLES[d.role];
-
-            const heroDiv = document.createElement('div');
-            heroDiv.className = 'player-hero';
-            heroDiv.textContent = hideHero ? '???' : d.hero.jp_name;
-
-            row.appendChild(nameDiv);
-            row.appendChild(roleDiv);
-            row.appendChild(heroDiv);
-            container.appendChild(row);
-        });
-
-        // テキストフィット処理 (レンダリング後に行う)
-        setTimeout(() => {
-            container.querySelectorAll('.player-name, .player-hero').forEach(el => {
-                let fontSize = 16;
-                el.style.fontSize = fontSize + 'px';
-                while (el.scrollWidth > el.clientWidth && fontSize > 9) {
-                    fontSize--;
-                    el.style.fontSize = fontSize + 'px';
-                }
-            });
-        }, 0);
-    };
-
-    buildHtml('red', '紅', redData);
-    buildHtml('blue', '蒼', blueData);
-}
-
-// --- 8. デバッグ機能 ---
-
-// グローバルにエクスポート
-window.dumpHistory = function() {
-    let tsv = "マッチNo\t所属チーム\t参加者\t使用ロール(和名)\t使用ヒーロー(和名)\n";
-    matchHistory.forEach(row => {
-        tsv += row.join('\t') + '\n';
     });
-    console.log(tsv);
-    return "コンソールに出力しました。";
+
+    saveData();
+
+    // 4. 結果描画
+    drawResult(selectedStage, teamRedData.results, teamBlueData.results);
+}
+
+/**
+ * 組み合わせ生成再帰関数
+ */
+function getTeamCombinations(players, teamSize) {
+    let results = [];
+    function combine(idx, currentTeam) {
+        if (currentTeam.length === teamSize) {
+            let otherTeam = players.filter(p => !currentTeam.includes(p));
+            // 重複排除のための簡易策 (配列のソート後文字列表現で判定等もできるが、カスタムなら全探索でOK)
+            results.push([currentTeam, otherTeam]);
+            return;
+        }
+        for (let i = idx; i < players.length; i++) {
+            combine(i + 1, [...currentTeam, players[i]]);
+        }
+    }
+    combine(0, []);
+    // 半分にする(AとB、BとAの重複排除)
+    return results.slice(0, results.length / 2);
+}
+
+/**
+ * チーム内の役割・キャラ割り当てコアロジック
+ */
+function assignRolesAndHeroes(players, mode, teamColor, opponentRoles = null) {
+    const isRoleFixed = document.getElementById('roleFixedToggle').checked;
+    const isSameRole = document.getElementById('sameRoleToggle').checked;
+    
+    // 個人固定ルールの抽出
+    let fixedPlayerRules = players.map(p => {
+        return { player: p, rule: fixedRules.find(r => r.enabled && r.targets.includes(p) && (r.type === 'ROLE' || r.type === 'HERO')) };
+    }).filter(x => x.rule);
+
+    let requiredRoles = [];
+    fixedPlayerRules.forEach(x => {
+        if (x.rule.type === 'ROLE') requiredRoles.push(x.rule.targetVal);
+        else {
+            let h = LIST_HERO.find(h => h.name === x.rule.targetVal);
+            if (h) requiredRoles.push(h.role);
+        }
+    });
+
+    // 枠の決定
+    let targetRoles = [];
+    if (isSameRole && opponentRoles) {
+        targetRoles = [...opponentRoles]; // 相手と同じ
+    } else {
+        // 重複なしで作成
+        targetRoles = [...requiredRoles]; // 必須を先に入れる
+        
+        let pool = [...ROLES];
+        if (isRoleFixed) {
+            let fixedChecked = Array.from(document.querySelectorAll('.role-fixed-cb')).filter(cb=>cb.checked).map(cb=>cb.value);
+            fixedChecked.forEach(r => {
+                if(!targetRoles.includes(r)) targetRoles.push(r);
+            });
+        }
+        
+        // 足りない分をランダムに追加
+        pool = shuffle(pool.filter(r => !targetRoles.includes(r)));
+        while(targetRoles.length < mode && pool.length > 0) {
+            targetRoles.push(pool.pop());
+        }
+        // それでも足りない（重複必須要求など異常時）
+        while(targetRoles.length < mode) targetRoles.push(ROLES[Math.floor(Math.random()*ROLES.length)]);
+    }
+
+    targetRoles = targetRoles.slice(0, mode); // 念のためカット
+
+    // プレイヤーへのロール割り当て（個人固定優先 -> 履歴考慮）
+    let unassignedPlayers = [...players];
+    let unassignedRoles = [...targetRoles];
+    let allocations = []; // { player, role, forcedHero }
+
+    // 個人固定反映
+    fixedPlayerRules.forEach(x => {
+        let role = x.rule.type === 'ROLE' ? x.rule.targetVal : LIST_HERO.find(h => h.name === x.rule.targetVal).role;
+        let idx = unassignedRoles.indexOf(role);
+        if (idx !== -1) {
+            allocations.push({ player: x.player, role: role, forcedHero: x.rule.type === 'HERO' ? x.rule.targetVal : null });
+            unassignedRoles.splice(idx, 1);
+            unassignedPlayers = unassignedPlayers.filter(p => p !== x.player);
+        }
+    });
+
+    // 残りの割り当て (直近2試合履歴を避ける)
+    unassignedPlayers = shuffle(unassignedPlayers);
+    for (let p of unassignedPlayers) {
+        let pRoleHistory = roleHistory[p] || [];
+        let candidates = unassignedRoles.filter(r => !pRoleHistory.includes(r));
+        if (candidates.length === 0) candidates = unassignedRoles; // フォールバック
+        let chosenRole = candidates[Math.floor(Math.random() * candidates.length)];
+        
+        allocations.push({ player: p, role: chosenRole, forcedHero: null });
+        unassignedRoles.splice(unassignedRoles.indexOf(chosenRole), 1);
+    }
+
+    // 特殊編成の割り込み判定
+    let appliedScHeroes = {}; // { player: heroName }
+    const activeSc = specialComps.filter(sc => sc.enabled);
+    if (activeSc.length > 0) {
+        let teamRoleMap = allocations.map(a => a.role).sort().join(',');
+        for (let sc of shuffle(activeSc)) {
+            let scHeroesObj = sc.heroes.map(hn => LIST_HERO.find(h=>h.name===hn)).filter(Boolean);
+            if (scHeroesObj.length !== mode) continue;
+            let scRoleMap = scHeroesObj.map(h => h.role).sort().join(',');
+            if (teamRoleMap === scRoleMap) {
+                // 除外・非所持チェック
+                let canApply = true;
+                for (let i=0; i<allocations.length; i++) {
+                    let alloc = allocations[i];
+                    if (alloc.forcedHero) continue; // 個人固定優先
+                    let targetScHero = scHeroesObj.find(h => h.role === alloc.role);
+                    if (!targetScHero) { canApply = false; break; }
+                    
+                    if (excludedHeroes.includes(targetScHero.name)) { canApply = false; break; }
+                    let notOwned = LIST_NOT_OWNED.filter(n => n.player_jp_name === alloc.player).map(n => n.hero_name);
+                    if (notOwned.includes(targetScHero.name)) { canApply = false; break; }
+                }
+                
+                if (canApply && Math.random() < 0.10) { // 10%で発動
+                    allocations.forEach(alloc => {
+                        if (!alloc.forcedHero) {
+                            let h = scHeroesObj.find(h => h.role === alloc.role);
+                            if(h) appliedScHeroes[alloc.player] = h.name;
+                        }
+                    });
+                    break; // 1つ適用したら抜ける
+                }
+            }
+        }
+    }
+
+    // キャラクター選出 (LRU)
+    let results = allocations.map(alloc => {
+        let hero = null;
+        if (alloc.forcedHero) {
+            hero = LIST_HERO.find(h => h.name === alloc.forcedHero);
+        } else if (appliedScHeroes[alloc.player]) {
+            hero = LIST_HERO.find(h => h.name === appliedScHeroes[alloc.player]);
+        } else {
+            hero = selectHeroLRU(alloc.role, alloc.player);
+        }
+        // フォールバック（万が一見つからない場合）
+        if(!hero) {
+            let fallbackList = LIST_HERO.filter(h=>h.role===alloc.role);
+            hero = fallbackList[Math.floor(Math.random()*fallbackList.length)];
+        }
+        return { player: alloc.player, role: alloc.role, hero: hero };
+    });
+
+    // ソート (アタッカー → ガンナー → スプリンター → タンク)
+    results.sort((a, b) => ROLES.indexOf(a.role) - ROLES.indexOf(b.role));
+
+    return { roleAllocations: targetRoles, results: results };
+}
+
+function selectHeroLRU(role, player) {
+    let candidates = LIST_HERO.filter(h => h.role === role);
+    candidates = candidates.filter(h => !excludedHeroes.includes(h.name));
+    
+    let notOwned = LIST_NOT_OWNED.filter(n => n.player_jp_name === player).map(n => n.hero_name);
+    candidates = candidates.filter(h => !notOwned.includes(h.name));
+
+    if (candidates.length === 0) candidates = LIST_HERO.filter(h => h.role === role);
+
+    let history = heroHistory[player] || []; // [new, ..., old]
+    let unused = candidates.filter(h => !history.includes(h.name));
+    
+    if (unused.length > 0) {
+        return unused[Math.floor(Math.random() * unused.length)];
+    }
+
+    // 全て使用済みの場合、最も履歴の古いもの（配列の末尾に近いもの）を選ぶ
+    // indexOfは配列の前方（新しい方）のインデックスを返す
+    candidates.sort((a, b) => history.indexOf(b.name) - history.indexOf(a.name));
+    let oldestIndex = history.indexOf(candidates[0].name);
+    let oldestCandidates = candidates.filter(h => history.indexOf(h.name) === oldestIndex);
+    return oldestCandidates[Math.floor(Math.random() * oldestCandidates.length)];
+}
+
+/**
+ * 結果描画
+ */
+function drawResult(stage, redResults, blueResults) {
+    document.getElementById('resultArea').style.display = 'block';
+    document.getElementById('stageResult').textContent = `ステージ: ${stage.jp_name}`;
+    
+    const isHideHero = document.getElementById('hideHeroName').checked;
+
+    const buildHtml = (results) => {
+        return results.map(r => `
+            <div class="player-row">
+                <div class="text-ellipsis" title="${r.player}">${r.player}</div>
+                <div style="font-size: 0.85rem; color: #aaa;">${ROLE_NAMES[r.role]}</div>
+                <div class="text-ellipsis" style="font-weight: bold;" title="${r.hero.jp_name}">${isHideHero ? '???' : r.hero.jp_name}</div>
+            </div>
+        `).join('');
+    };
+
+    document.getElementById('teamRedArea').innerHTML = buildHtml(redResults);
+    document.getElementById('teamBlueArea').innerHTML = buildHtml(blueResults);
+}
+
+/**
+ * コピー機能
+ */
+function copyTeam(areaId, btnElement) {
+    const area = document.getElementById(areaId);
+    // 参加者名だけを抽出 (DOM構造依存)
+    const players = Array.from(area.querySelectorAll('.player-row > div:first-child')).map(el => el.textContent);
+    const text = players.join('、');
+    
+    navigator.clipboard.writeText(text).then(() => {
+        const originalText = btnElement.textContent;
+        btnElement.textContent = 'コピー完了!';
+        btnElement.style.backgroundColor = '#4caf50';
+        btnElement.style.color = '#fff';
+        setTimeout(() => {
+            btnElement.textContent = originalText;
+            btnElement.style.backgroundColor = '';
+            btnElement.style.color = '';
+        }, 2000);
+    });
+}
+
+/**
+ * デバッグ機能
+ */
+window.dumpHistory = function() {
+    console.log("マッチNo\t所属チーム\t参加者\t使用ロール(和名)\t使用ヒーロー(和名)");
+    matchHistoryAll.forEach(r => {
+        console.log(`${r.no}\t${r.team}\t${r.player}\t${r.role}\t${r.hero}`);
+    });
+    return "Output completed. Check console.";
 };
 
 window.checkMatching = function() {
-    const requiredPlayers = parseInt(document.querySelector('input[name="mode"]:checked').value) * 2;
-    if (members.length < requiredPlayers) {
-        console.warn('メンバーが不足しています');
-        return;
+    const originalDisplay = document.getElementById('resultArea').style.display;
+    console.log("自動テストを100回実行します...");
+    for(let i=0; i<100; i++) {
+        // 描画コストを下げるために一時的に描画を止める処理は本来必要だが、
+        // 同期処理でDOMを書き換えるだけであれば最終結果しかブラウザにレンダリングされないためそのまま実行
+        generateTeams(); 
     }
-    console.log("自動マッチングテストを開始します (100回)...");
-    for (let i = 0; i < 100; i++) {
-        // isSilent=false で状態更新させるが、描画は重いため一旦DOM更新を保留する手法もある。
-        // ここでは仕様「再描画を行わない」を満たすため、一時的にDOM関数を無効化する
-        const originRender = renderResult;
-        renderResult = () => {}; // 描画無効化
-        executeMatching(false);
-        renderResult = originRender; // 復元
-    }
-    // 最後に1回だけ描画するための空キック(最新状態は反映されないがUIは更新されない)
-    // テスト後手動で生成ボタンを押せば確認可能
-    console.log("テスト完了。結果を確認するには dumpHistory() を実行してください。");
+    document.getElementById('resultArea').style.display = originalDisplay;
+    console.log("テスト完了。dumpHistory() で履歴を確認できます。");
+    return "Check complete.";
 };
 
 </script>
