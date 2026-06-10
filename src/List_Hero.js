@@ -155,6 +155,11 @@ const LIST_HERO = [
         "jp_name": "アーチャー（ギルガメッシュ）"
     },
     {
+        "role": "ATTACKER",
+        "name": "ATTACKER_032",
+        "jp_name": "シャルル・リヒター"
+    },
+    {
         "role": "GUNNER",
         "name": "GUNNER_001",
         "jp_name": "リリカ"
@@ -290,79 +295,9 @@ const LIST_HERO = [
         "jp_name": "ランサー（エルキドゥ）"
     },
     {
-        "role": "TANK",
-        "name": "TANK_001",
-        "jp_name": "ジャスティス ハンコック"
-    },
-    {
-        "role": "TANK",
-        "name": "TANK_002",
-        "jp_name": "ジャンヌ ダルク"
-    },
-    {
-        "role": "TANK",
-        "name": "TANK_003",
-        "jp_name": "グスタフ ハイドリヒ"
-    },
-    {
-        "role": "TANK",
-        "name": "TANK_004",
-        "jp_name": "ヴィオレッタ ノワール"
-    },
-    {
-        "role": "TANK",
-        "name": "TANK_005",
-        "jp_name": "鏡音 レン"
-    },
-    {
-        "role": "TANK",
-        "name": "TANK_006",
-        "jp_name": "モノクマ"
-    },
-    {
-        "role": "TANK",
-        "name": "TANK_007",
-        "jp_name": "めぐみん"
-    },
-    {
-        "role": "TANK",
-        "name": "TANK_008",
-        "jp_name": "トマス"
-    },
-    {
-        "role": "TANK",
-        "name": "TANK_009",
-        "jp_name": "佐藤四郎兵衛忠信"
-    },
-    {
-        "role": "TANK",
-        "name": "TANK_010",
-        "jp_name": "ライザリン・シュタウト"
-    },
-    {
-        "role": "TANK",
-        "name": "TANK_011",
-        "jp_name": "青春 アリス"
-    },
-    {
-        "role": "TANK",
-        "name": "TANK_012",
-        "jp_name": "ラヴィ・シュシュマルシュ"
-    },
-    {
-        "role": "TANK",
-        "name": "TANK_013",
-        "jp_name": "アミスター=バランディン"
-    },
-    {
-        "role": "TANK",
-        "name": "TANK_014",
-        "jp_name": "鬼ヶ式うら"
-    },
-    {
-        "role": "TANK",
-        "name": "TANK_015",
-        "jp_name": "ポプ子＆ピピ美"
+        "role": "GUNNER",
+        "name": "GUNNER_028",
+        "jp_name": "レゼ"
     },
     {
         "role": "SPRINTER",
@@ -491,17 +426,82 @@ const LIST_HERO = [
     },
     {
         "role": "TANK",
+        "name": "TANK_001",
+        "jp_name": "ジャスティス ハンコック"
+    },
+    {
+        "role": "TANK",
+        "name": "TANK_002",
+        "jp_name": "ジャンヌ ダルク"
+    },
+    {
+        "role": "TANK",
+        "name": "TANK_003",
+        "jp_name": "グスタフ ハイドリヒ"
+    },
+    {
+        "role": "TANK",
+        "name": "TANK_004",
+        "jp_name": "ヴィオレッタ ノワール"
+    },
+    {
+        "role": "TANK",
+        "name": "TANK_005",
+        "jp_name": "鏡音 レン"
+    },
+    {
+        "role": "TANK",
+        "name": "TANK_006",
+        "jp_name": "モノクマ"
+    },
+    {
+        "role": "TANK",
+        "name": "TANK_007",
+        "jp_name": "めぐみん"
+    },
+    {
+        "role": "TANK",
+        "name": "TANK_008",
+        "jp_name": "トマス"
+    },
+    {
+        "role": "TANK",
+        "name": "TANK_009",
+        "jp_name": "佐藤四郎兵衛忠信"
+    },
+    {
+        "role": "TANK",
+        "name": "TANK_010",
+        "jp_name": "ライザリン・シュタウト"
+    },
+    {
+        "role": "TANK",
+        "name": "TANK_011",
+        "jp_name": "青春 アリス"
+    },
+    {
+        "role": "TANK",
+        "name": "TANK_012",
+        "jp_name": "ラヴィ・シュシュマルシュ"
+    },
+    {
+        "role": "TANK",
+        "name": "TANK_013",
+        "jp_name": "アミスター=バランディン"
+    },
+    {
+        "role": "TANK",
+        "name": "TANK_014",
+        "jp_name": "鬼ヶ式うら"
+    },
+    {
+        "role": "TANK",
+        "name": "TANK_015",
+        "jp_name": "ポプ子＆ピピ美"
+    },
+    {
+        "role": "TANK",
         "name": "TANK_016",
         "jp_name": "†ファースト†"
-    },
-    {
-        "role": "GUNNER",
-        "name": "GUNNER_028",
-        "jp_name": "レゼ"
-    },
-    {
-        "role": "ATTACKER",
-        "name": "ATTACKER_032",
-        "jp_name": "シャルル・リヒター"
     }
 ];

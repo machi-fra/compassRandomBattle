@@ -86,6 +86,15 @@
             padding: 8px; background: #121212; color: white;
             border: 1px solid var(--border-color); border-radius: 4px;
         }
+        
+        /* 読み取り専用インプットのスタイル */
+        input[readonly] {
+            background-color: #222;
+            color: #888;
+            border-color: #444;
+            cursor: default;
+        }
+
         input.error, select.error { border: 2px solid var(--error); outline: none; background-color: rgba(255, 85, 85, 0.1); }
         
         .error-msg { color: var(--error); font-size: 0.85em; margin-left: auto; font-weight: bold; }
@@ -95,6 +104,19 @@
         button.btn-add:hover { background-color: #388e3c; }
         button.btn-del { background-color: #d32f2f; padding: 8px 12px; color: white; }
         button.btn-del:hover { background-color: #f44336; }
+
+        /* optgroupのラベルを見やすくする */
+        optgroup {
+            color: var(--primary);
+            font-style: normal;
+            font-weight: bold;
+            background-color: #1a1a1a;
+        }
+        optgroup option {
+            color: white;
+            background-color: #121212;
+            padding-left: 10px;
+        }
     </style>
 </head>
 <body>
@@ -117,7 +139,7 @@
                 <button class="btn-load" onclick="loadFile('hero', 'List_Hero.js')">読み込む</button>
                 <button id="save-hero" class="btn-save" onclick="saveFile('hero')" disabled>保存する</button>
             </div>
-            <p>使用キャラクターの一覧を定義します。ヒーロー名(英数字推奨)は他の機能と連携する内部IDとして機能します。</p>
+            <p>使用キャラクターの一覧を定義します。ヒーロー名(英数)はロールごとに自動付与されます。</p>
             <div id="hero-list"></div>
             <button class="btn-add" onclick="addRow('hero')">＋ ヒーローを追加</button>
         </div>
@@ -139,7 +161,7 @@
                 <button class="btn-load" onclick="loadFile('notOwned', 'List_NotOwned.js')">読み込む</button>
                 <button id="save-notOwned" class="btn-save" onclick="saveFile('notOwned')" disabled>保存する</button>
             </div>
-            <p>参加者ごとに使用不可能なヒーローを定義します。ヒーロー名は「List_Hero.js」の定義とリンクしています。</p>
+            <p>参加者ごとに使用不可能なヒーローを定義します。保存時に「参加者→ロール→ヒーロー」の順で自動ソートされます。</p>
             <div id="notOwned-list"></div>
             <button class="btn-add" onclick="addRow('notOwned')">＋ 使用不可能ヒーローを追加</button>
         </div>
@@ -168,6 +190,9 @@
         { val: 'TANK', label: 'タンク' }
     ];
 
+    // ソート順定義用
+    const ROLE_ORDER = { 'ATTACKER': 1, 'GUNNER': 2, 'SPRINTER': 3, 'TANK': 4 };
+
     // --- 初期化 ---
     document.addEventListener('DOMContentLoaded', () => {
         // 空の状態で数行追加しておく（新規作成用）
@@ -188,8 +213,36 @@
         event.target.classList.add('active');
         document.getElementById('tab-' + tabId).classList.add('active');
         
-        // 別のタブへ移動した際、画面トップへ少しスクロール調整（必要であれば）
+        // 別のタブへ移動した際、画面トップへ少しスクロール調整
         window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // --- ヒーロー名の自動生成処理 ---
+    function generateHeroName(role) {
+        let max = 0;
+        const prefix = role + '_';
+        
+        // 既存のヒーローから同ロールの最大連番を検索
+        data.hero.forEach(h => {
+            if (h.name && h.name.startsWith(prefix)) {
+                const numPart = h.name.substring(prefix.length);
+                const num = parseInt(numPart, 10);
+                if (!isNaN(num) && num > max) {
+                    max = num;
+                }
+            }
+        });
+        
+        let nextNum = max + 1;
+        let newName = prefix + String(nextNum).padStart(3, '0');
+        
+        // 念のための重複チェック
+        const isExists = (name) => data.hero.some(h => h.name === name);
+        while (isExists(newName)) {
+            nextNum++;
+            newName = prefix + String(nextNum).padStart(3, '0');
+        }
+        return newName;
     }
 
     // --- ファイル読み込み処理 (個別) ---
@@ -201,7 +254,6 @@
         }
 
         const file = fileInput.files[0];
-        // ファイル名が想定と違う場合の警告 (強制ではない)
         if (file.name !== expectedFileName) {
             if (!confirm(`選択されたファイル名が「${expectedFileName}」ではありません。\n読み込みを続行しますか？`)) {
                 return;
@@ -217,15 +269,21 @@
                     const parsedArray = new Function('return ' + match[1])();
                     data[type] = parsedArray;
                     
-                    // 読み込み成功時は変更フラグをリセット
                     isDirty[type] = false;
                     
-                    if(type === 'hero') { renderHeroList(); renderNotOwnedList(); } // Heroが変わればNotOwnedのプルダウンも更新
+                    if(type === 'hero') { 
+                        // 読み込み時、名前が空のデータがあれば自動付与を試みる
+                        data.hero.forEach(h => {
+                            if (!h.name) h.name = generateHeroName(h.role || 'ATTACKER');
+                        });
+                        renderHeroList(); 
+                        renderNotOwnedList(); 
+                    }
                     if(type === 'stage') renderStageList();
                     if(type === 'notOwned') renderNotOwnedList();
                     
                     updateSaveButtons();
-                    alert(`${file.name} を読み込みました。`);
+                    // ポップアップを出さないようアラートを削除
                 } else {
                     alert('ファイルの解析に失敗しました。フォーマットが正しいか確認してください。');
                 }
@@ -248,7 +306,7 @@
                 <select onchange="markDirty('hero'); updateData('hero', ${index}, 'role', this.value)" id="hero-role-${index}">
                     ${ROLES.map(r => `<option value="${r.val}" ${item.role === r.val ? 'selected' : ''}>${r.label}</option>`).join('')}
                 </select>
-                <input type="text" placeholder="ヒーロー名 (英数)" value="${item.name || ''}" onchange="markDirty('hero'); updateData('hero', ${index}, 'name', this.value)" id="hero-name-${index}">
+                <input type="text" placeholder="ヒーロー名 (自動付与)" value="${item.name || ''}" id="hero-name-${index}" readonly title="ロールに基づいて自動設定されます">
                 <input type="text" placeholder="ヒーロー和名" value="${item.jp_name || ''}" onchange="markDirty('hero'); updateData('hero', ${index}, 'jp_name', this.value)" id="hero-jp_name-${index}" style="flex-grow:1;">
                 <span class="error-msg" id="hero-err-${index}"></span>
                 <button class="btn-del" onclick="deleteRow('hero', ${index})">削除</button>
@@ -281,10 +339,18 @@
         const container = document.getElementById('notOwned-list');
         container.innerHTML = '';
         
-        const heroOptions = data.hero
-            .filter(h => h.name && h.jp_name)
-            .map(h => `<option value="${h.name}">${h.jp_name}</option>`)
-            .join('');
+        // optgroupを使ってロールごとにヒーローをまとめる
+        let heroOptions = '<option value="">-- ヒーローを選択 --</option>';
+        ROLES.forEach(r => {
+            const heroesInRole = data.hero.filter(h => h.role === r.val && h.name && h.jp_name);
+            if (heroesInRole.length > 0) {
+                heroOptions += `<optgroup label="■ ${r.label}">`;
+                heroesInRole.forEach(h => {
+                    heroOptions += `<option value="${h.name}">${h.jp_name}</option>`;
+                });
+                heroOptions += `</optgroup>`;
+            }
+        });
 
         data.notOwned.forEach((item, index) => {
             const div = document.createElement('div');
@@ -292,7 +358,6 @@
             div.innerHTML = `
                 <input type="text" placeholder="参加者和名" value="${item.player_jp_name || ''}" onchange="markDirty('notOwned'); updateData('notOwned', ${index}, 'player_jp_name', this.value)" id="notOwned-player_jp_name-${index}">
                 <select onchange="markDirty('notOwned'); updateData('notOwned', ${index}, 'hero_name', this.value)" id="notOwned-hero_name-${index}" style="flex-grow:1;">
-                    <option value="">-- ヒーローを選択 --</option>
                     ${heroOptions}
                 </select>
                 <span class="error-msg" id="notOwned-err-${index}"></span>
@@ -310,7 +375,6 @@
     function markDirty(type) {
         isDirty[type] = true;
         updateSaveButtons();
-        // 保存前に発生していたエラー表示を一旦クリアする
         clearErrors(type);
     }
 
@@ -327,14 +391,24 @@
 
     function updateData(type, index, key, value) {
         data[type][index][key] = value;
-        if(type === 'hero' && (key === 'name' || key === 'jp_name')) {
-            // ヒーロー名が変わった場合は未所持リストのプルダウンも再描画する
+        
+        if (type === 'hero') {
+            if (key === 'role') {
+                // ロールが変更された場合、ID(名前)を自動で再計算する
+                data.hero[index].name = generateHeroName(value);
+                renderHeroList();
+            }
+            // ヒーロー情報が変更された場合は未所持リストのプルダウンに反映させる
             renderNotOwnedList(); 
         }
     }
 
     function addRow(type) {
-        if (type === 'hero') data.hero.push({ role: 'ATTACKER', name: '', jp_name: '' });
+        if (type === 'hero') {
+            const defaultRole = 'ATTACKER';
+            // 新規追加時にも名前を自動生成
+            data.hero.push({ role: defaultRole, name: generateHeroName(defaultRole), jp_name: '' });
+        }
         if (type === 'stage') data.stage.push({ mode: 2, name: '', jp_name: '' });
         if (type === 'notOwned') data.notOwned.push({ player_jp_name: '', hero_name: '' });
         
@@ -355,12 +429,13 @@
     // --- 保存時のバリデーション ---
     function validateFile(type) {
         let hasError = false;
-        clearErrors(type); // チェック前にリセット
+        clearErrors(type);
 
         if (type === 'hero') {
             const heroNames = [];
             data.hero.forEach((h, i) => {
                 let err = [];
+                // 自動生成により未入力は発生しない想定だが念のためチェック
                 if (!h.name) { err.push('名(英数)未入力'); document.getElementById(`hero-name-${i}`).classList.add('error'); }
                 else if (heroNames.includes(h.name)) { err.push('名(英数)重複'); document.getElementById(`hero-name-${i}`).classList.add('error'); }
                 if (!h.jp_name) { err.push('和名未入力'); document.getElementById(`hero-jp_name-${i}`).classList.add('error'); }
@@ -410,17 +485,47 @@
 
     // --- ファイル保存 (ダウンロード) ---
     function saveFile(type) {
-        // 保存時に該当ファイルのバリデーションを実行
         if (!validateFile(type)) {
             alert('入力エラーがあります。赤枠の箇所を修正してから再度保存してください。');
             return;
         }
 
-        if (type === 'hero') downloadJS('List_Hero.js', 'LIST_HERO', data.hero);
-        if (type === 'stage') downloadJS('List_Stage.js', 'LIST_STAGE', data.stage);
-        if (type === 'notOwned') downloadJS('List_NotOwned.js', 'LIST_NOT_OWNED', data.notOwned);
+        if (type === 'hero') {
+            // ロール順、ヒーロー名順でソート
+            data.hero.sort((a, b) => {
+                const roleDiff = (ROLE_ORDER[a.role] || 99) - (ROLE_ORDER[b.role] || 99);
+                if (roleDiff !== 0) return roleDiff;
+                return (a.name || '').localeCompare(b.name || '');
+            });
+            renderHeroList(); // 画面にもソート順を反映
+            downloadJS('List_Hero.js', 'LIST_HERO', data.hero);
+        }
+        else if (type === 'stage') {
+            downloadJS('List_Stage.js', 'LIST_STAGE', data.stage);
+        }
+        else if (type === 'notOwned') {
+            // 参加者、ロール、ヒーロー名の順でソート
+            data.notOwned.sort((a, b) => {
+                const pA = a.player_jp_name || '';
+                const pB = b.player_jp_name || '';
+                if (pA !== pB) return pA.localeCompare(pB, 'ja'); // 日本語の辞書順
+                
+                const getRole = (hName) => {
+                    const hero = data.hero.find(x => x.name === hName);
+                    return hero ? hero.role : 'ZZZ';
+                };
+                const rA = getRole(a.hero_name);
+                const rB = getRole(b.hero_name);
+                
+                const roleDiff = (ROLE_ORDER[rA] || 99) - (ROLE_ORDER[rB] || 99);
+                if (roleDiff !== 0) return roleDiff;
+                
+                return (a.hero_name || '').localeCompare(b.hero_name || '');
+            });
+            renderNotOwnedList(); // 画面にもソート順を反映
+            downloadJS('List_NotOwned.js', 'LIST_NOT_OWNED', data.notOwned);
+        }
         
-        // 保存成功したら変更フラグを解除
         isDirty[type] = false;
         updateSaveButtons();
         
