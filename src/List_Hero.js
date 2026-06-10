@@ -498,5 +498,10 @@ const LIST_HERO = [
         "role": "GUNNER",
         "name": "GUNNER_028",
         "jp_name": "レゼ"
+    },
+    {
+        "role": "ATTACKER",
+        "name": "ATTACKER_032",
+        "jp_name": "シャルル・リヒター"
     }
 ];
