@@ -425,6 +425,11 @@ const LIST_HERO = [
         "jp_name": "セイバー（獅子心王リチャード1世）"
     },
     {
+        "role": "SPRINTER",
+        "name": "SPRINTER_026",
+        "jp_name": "一姫"
+    },
+    {
         "role": "TANK",
         "name": "TANK_001",
         "jp_name": "ジャスティス ハンコック"
