@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ブラウザ・ルーレット</title>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --danger: #e11d48;
+            --danger-hover: #be123c;
+            --bg-color: #0f172a;
+            --panel-bg: #1e293b;
+            --text-main: #f8fafc;
+            --item-height: 120px; /* スクロールアイテムの高さ */
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 2rem 1rem;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .container {
+            background-color: var(--panel-bg);
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+        }
+
+        h1 {
+            margin-top: 0;
+            font-size: 1.8rem;
+            color: #38bdf8;
+            letter-spacing: 2px;
+        }
+
+        /* --- 入力画面 --- */
+        #input-screen {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        textarea {
+            width: 100%;
+            height: 200px;
+            background-color: #0f172a;
+            color: #f8fafc;
+            border: 2px solid #334155;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            font-size: 1.1rem;
+            resize: vertical;
+            box-sizing: border-box;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        textarea:focus {
+            border-color: var(--primary);
+        }
+
+        .hint {
+            font-size: 0.9rem;
+            color: #94a3b8;
+            text-align: left;
+            margin-bottom: 0;
+        }
+
+        /* --- 抽選画面 --- */
+        #roulette-screen {
+            display: none;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        /* ルーレットの窓（スクロールする部分） */
+        #roulette-window {
+            height: var(--item-height);
+            background-color: #0f172a;
+            border-radius: 0.5rem;
+            border: 3px solid #334155;
+            overflow: hidden; /* 枠外を隠す */
+            position: relative;
+            box-shadow: inset 0 10px 20px rgba(0,0,0,0.5);
+        }
+
+        /* 縦に並ぶアイテムのコンテナ */
+        #roulette-strip {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            /* アニメーションはJSで動的に付与します */
+        }
+
+        .roulette-item {
+            height: var(--item-height);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            font-weight: bold;
+            color: #f8fafc;
+            word-break: break-all;
+            padding: 0 1rem;
+            box-sizing: border-box;
+        }
+
+        /* 当選時の演出 */
+        .winner-anim {
+            animation: pulse-color 1.5s infinite;
+            color: #fde047;
+            text-shadow: 0 0 10px #facc15, 0 0 20px #eab308;
+        }
+
+        @keyframes pulse-color {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        /* --- ボタン --- */
+        .btn-group {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 0.8rem 1.5rem;
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: white;
+            background-color: var(--primary);
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        button:hover:not(:disabled) {
+            background-color: var(--primary-hover);
+            transform: translateY(-2px);
+        }
+
+        button:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            background-color: #475569;
+            color: #94a3b8;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
+        /* --- 候補一覧リスト --- */
+        .candidate-section {
+            background-color: #0f172a;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            text-align: left;
+        }
+
+        .candidate-section h3 {
+            margin-top: 0;
+            font-size: 1rem;
+            color: #94a3b8;
+            border-bottom: 1px solid #334155;
+            padding-bottom: 0.5rem;
+        }
+
+        #candidate-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .candidate-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem;
+            border-bottom: 1px solid #1e293b;
+        }
+
+        .candidate-row:last-child {
+            border-bottom: none;
+        }
+
+        .delete-btn {
+            background-color: var(--danger);
+            color: white;
+            border: none;
+            border-radius: 0.25rem;
+            padding: 0.3rem 0.6rem;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+
+        .delete-btn:hover:not(:disabled) {
+            background-color: var(--danger-hover);
+        }
+        
+        .delete-btn:disabled {
+            background-color: #475569;
+            cursor: not-allowed;
+        }
+        
+        /* スクロールバーの装飾 */
+        #candidate-list::-webkit-scrollbar { width: 8px; }
+        #candidate-list::-webkit-scrollbar-track { background: #0f172a; }
+        #candidate-list::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="input-screen">
+        <h1>🎲 ブラウザ・ルーレット</h1>
+        <p class="hint">候補を改行区切りで入力してください。</p>
+        <textarea id="candidates-input" placeholder="Aさん&#13;&#10;Bさん&#13;&#10;Cさん"></textarea>
+        <button id="go-to-roulette">抽選画面へ</button>
+    </div>
+
+    <div id="roulette-screen">
+        <h1>🎰 抽選中...</h1>
+        
+        <div id="roulette-window">
+            <div id="roulette-strip">
+                <div class="roulette-item" id="current-display">準備完了</div>
+            </div>
+        </div>
+        
+        <div class="btn-group">
+            <button id="start-roulette">抽選開始</button>
+            <button id="back-to-input">再入力</button>
+        </div>
+
+        <div class="candidate-section">
+            <h3 id="candidate-count">登録中の候補: 0件</h3>
+            <ul id="candidate-list">
+                </ul>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- 要素の取得 ---
+    const inputScreen = document.getElementById('input-screen');
+    const rouletteScreen = document.getElementById('roulette-screen');
+    const textarea = document.getElementById('candidates-input');
+    const goToRouletteBtn = document.getElementById('go-to-roulette');
+    const startBtn = document.getElementById('start-roulette');
+    const backBtn = document.getElementById('back-to-input');
+    
+    const rouletteStrip = document.getElementById('roulette-strip');
+    const candidateListDisplay = document.getElementById('candidate-list');
+    const candidateCountDisplay = document.getElementById('candidate-count');
+
+    // --- 状態管理 ---
+    let candidates = [];
+    let isSpinning = false;
+    const itemHeight = 120; // CSSの --item-height と合わせる
+
+    // --- AudioContext (効果音用) ---
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    let audioCtx;
+
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new AudioContext();
+        }
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+    }
+
+    // ドラムロール（回転）音
+    function playTickSound() {
+        if (!audioCtx) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.05);
+        gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.05);
+    }
+
+    // 当選時のファンファーレ
+    function playTadaSound() {
+        if (!audioCtx) return;
+        const frequencies = [261.63, 329.63, 392.00, 523.25]; // C, E, G, C (Cメジャーコード)
+        frequencies.forEach((freq, i) => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.value = freq;
+            gain.gain.setValueAtTime(0, audioCtx.currentTime + (i * 0.05));
+            gain.gain.linearRampToValueAtTime(0.1, audioCtx.currentTime + 0.05 + (i * 0.05));
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.5 + (i * 0.05));
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(audioCtx.currentTime + (i * 0.05));
+            osc.stop(audioCtx.currentTime + 2);
+        });
+    }
+
+    // --- 画面切り替え ---
+    function showRouletteScreen() {
+        initAudio(); // ユーザーのアクションを機にAudioを許可
+
+        const rawText = textarea.value;
+        candidates = rawText.split('\n').map(item => item.trim()).filter(item => item !== '');
+
+        if (candidates.length === 0) {
+            alert('候補を1つ以上入力してください。');
+            return;
+        }
+
+        renderCandidateList();
+        
+        // 表示のリセット
+        rouletteStrip.style.transition = 'none';
+        rouletteStrip.style.transform = 'translateY(0)';
+        rouletteStrip.innerHTML = '<div class="roulette-item" id="current-display">準備完了</div>';
+
+        inputScreen.style.display = 'none';
+        rouletteScreen.style.display = 'flex';
+    }
+
+    function showInputScreen() {
+        textarea.value = candidates.join('\n'); // 削除された状態をテキストエリアに反映
+        rouletteScreen.style.display = 'none';
+        inputScreen.style.display = 'flex';
+    }
+
+    // --- 候補一覧の描画と削除機能 ---
+    function renderCandidateList() {
+        candidateListDisplay.innerHTML = '';
+        candidateCountDisplay.textContent = `登録中の候補: ${candidates.length}件`;
+
+        if (candidates.length === 0) {
+            startBtn.disabled = true;
+            return;
+        }
+
+        startBtn.disabled = false;
+
+        candidates.forEach((candidate, index) => {
+            const li = document.createElement('li');
+            li.className = 'candidate-row';
+            
+            const span = document.createElement('span');
+            span.textContent = candidate;
+            
+            const delBtn = document.createElement('button');
+            delBtn.className = 'delete-btn';
+            delBtn.textContent = '× 削除';
+            // スピン中は削除ボタンを無効化
+            delBtn.disabled = isSpinning;
+            
+            delBtn.addEventListener('click', () => {
+                deleteCandidate(index);
+            });
+
+            li.appendChild(span);
+            li.appendChild(delBtn);
+            candidateListDisplay.appendChild(li);
+        });
+    }
+
+    function deleteCandidate(index) {
+        if (isSpinning) return;
+        candidates.splice(index, 1);
+        renderCandidateList();
+    }
+
+    // --- スクロールアニメーションと抽選 ---
+    function startRoulette() {
+        if (candidates.length === 0 || isSpinning) return;
+        initAudio();
+
+        isSpinning = true;
+        startBtn.disabled = true;
+        backBtn.disabled = true;
+        renderCandidateList(); // 削除ボタンを無効化するために再描画
+
+        // 1. スクロール用の要素を生成
+        const totalItems = 40; // スクロールする総数（演出の長さ）
+        const winnerIndexLocal = Math.floor(Math.random() * candidates.length);
+        const winnerText = candidates[winnerIndexLocal];
+        
+        // 現在表示されている要素を取得
+        const currentText = rouletteStrip.querySelector('.roulette-item:last-child')?.textContent || '準備完了';
+        
+        // ストリップの中身を作り直す
+        rouletteStrip.innerHTML = '';
+        
+        // 最初の要素（現在表示されているもの）
+        const firstDiv = document.createElement('div');
+        firstDiv.className = 'roulette-item';
+        firstDiv.textContent = currentText;
+        rouletteStrip.appendChild(firstDiv);
+
+        // ダミーの要素を追加（スロットが回っているように見せる）
+        for (let i = 1; i < totalItems - 1; i++) {
+            const div = document.createElement('div');
+            div.className = 'roulette-item';
+            // ランダムな候補を配置
+            div.textContent = candidates[Math.floor(Math.random() * candidates.length)];
+            rouletteStrip.appendChild(div);
+        }
+
+        // 最後の要素（当選者）
+        const winnerDiv = document.createElement('div');
+        winnerDiv.className = 'roulette-item';
+        winnerDiv.textContent = winnerText;
+        rouletteStrip.appendChild(winnerDiv);
+
+        // 2. アニメーションの準備
+        rouletteStrip.style.transition = 'none'; // 一旦アニメーションを切る
+        rouletteStrip.style.transform = `translateY(0px)`;
+        
+        // ブラウザに上記の変更を強制的に認識させる（リフロー）
+        rouletteStrip.offsetHeight; 
+
+        // 3. アニメーション開始
+        const duration = 4000; // 4秒かけて止まる
+        // cubic-bezier で最初は早く、最後はゆっくり止まる動きを作る
+        rouletteStrip.style.transition = `transform ${duration}ms cubic-bezier(0.2, 0.8, 0.1, 1)`;
+        // 最後の要素（totalItems - 1）の位置まで上にスクロール
+        const targetY = -((totalItems - 1) * itemHeight);
+        rouletteStrip.style.transform = `translateY(${targetY}px)`;
+
+        // 4. 音の演出（擬似的に徐々に遅くなるスクロール音）
+        let elapsed = 0;
+        let delay = 20;
+        
+        function tickLoop() {
+            if (!isSpinning) return;
+            playTickSound();
+            
+            // 時間の経過とともに間隔をあける（ブレーキがかかる表現）
+            let progress = elapsed / duration;
+            delay = 20 + (Math.pow(progress, 3) * 300); 
+            
+            elapsed += delay;
+            if (elapsed < duration - 100) {
+                setTimeout(tickLoop, delay);
+            }
+        }
+        tickLoop();
+
+        // 5. アニメーション終了時の処理
+        setTimeout(() => {
+            isSpinning = false;
+            startBtn.disabled = false;
+            backBtn.disabled = false;
+            renderCandidateList(); // 削除ボタンを有効化
+            
+            winnerDiv.classList.add('winner-anim');
+            playTadaSound(); // ファンファーレ
+            
+        }, duration);
+    }
+
+    // --- イベントリスナー ---
+    goToRouletteBtn.addEventListener('click', showRouletteScreen);
+    backBtn.addEventListener('click', showInputScreen);
+    startBtn.addEventListener('click', startRoulette);
+
+</script>
+</body>
+</html>
