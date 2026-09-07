@@ -3,25 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>簡単ルーレット</title>
+    <title>THE SELECTOR - プレミアム・ルーレット</title>
+    <!-- 洗練されたスタイリッシュなWebフォント -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@500;700;900&family=Plus+Jakarta+Sans:wght@700;800&display=swap" rel="stylesheet">
+    
     <style>
         :root {
-            --primary: #4f46e5;
-            --primary-hover: #4338ca;
-            --danger: #e11d48;
-            --danger-hover: #be123c;
-            --bg-color: #0f172a;
-            --panel-bg: #1e293b;
-            --text-main: #f8fafc;
-            --item-height: 120px; /* スクロールアイテムの高さ */
+            --bg-grad: radial-gradient(circle at 50% 20%, #1a202c 0%, #0d1117 100%);
+            --panel-bg: rgba(22, 27, 34, 0.85);
+            --panel-border: rgba(255, 255, 255, 0.08);
+            --accent-gold: #d97706;
+            --accent-gold-light: #fbbf24;
+            --gold-grad: linear-gradient(135deg, #f59e0b 0%, #b45309 100%);
+            --gold-glow: rgba(245, 158, 11, 0.25);
+            --btn-secondary-bg: #21262d;
+            --btn-secondary-border: #30363d;
+            --text-main: #f0f6fc;
+            --text-sub: #8b949e;
+            --item-height: 120px;
         }
 
         body {
-            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
-            background-color: var(--bg-color);
+            font-family: 'Plus Jakarta Sans', 'Noto Sans JP', sans-serif;
+            background: var(--bg-grad);
+            background-attachment: fixed;
             color: var(--text-main);
             margin: 0;
-            padding: 2rem 1rem;
+            padding: 2.5rem 1rem;
             display: flex;
             justify-content: center;
             align-items: flex-start;
@@ -30,53 +40,65 @@
         }
 
         .container {
-            background-color: var(--panel-bg);
-            padding: 2rem;
-            border-radius: 1rem;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            background: var(--panel-bg);
+            backdrop-filter: blur(16px);
+            padding: 2.5rem 2.2rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
             width: 100%;
-            max-width: 600px;
+            max-width: 560px;
             text-align: center;
+            border: 1px solid var(--panel-border);
         }
 
-        h1 {
-            margin-top: 0;
-            font-size: 1.8rem;
-            color: #38bdf8;
-            letter-spacing: 2px;
+        /* --- タイトルロゴ --- */
+        .logo {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 2.2rem;
+            font-weight: 800;
+            letter-spacing: 3px;
+            background: linear-gradient(135deg, #ffffff 30%, #d1d5db 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 0 0 0.4rem 0;
+            text-transform: uppercase;
+        }
+
+        .subtitle {
+            font-size: 0.85rem;
+            color: var(--text-sub);
+            margin: 0 0 1.8rem 0;
+            letter-spacing: 1px;
+            font-weight: 500;
         }
 
         /* --- 入力画面 --- */
         #input-screen {
             display: flex;
             flex-direction: column;
-            gap: 1rem;
+            gap: 1.2rem;
         }
 
         textarea {
             width: 100%;
-            height: 200px;
-            background-color: #0f172a;
-            color: #f8fafc;
-            border: 2px solid #334155;
-            border-radius: 0.5rem;
-            padding: 1rem;
-            font-size: 1.1rem;
+            height: 220px;
+            background-color: #0d1117;
+            color: var(--text-main);
+            border: 1px solid var(--btn-secondary-border);
+            border-radius: 0.85rem;
+            padding: 1.2rem;
+            font-size: 1.05rem;
+            font-family: inherit;
             resize: vertical;
             box-sizing: border-box;
             outline: none;
-            transition: border-color 0.3s;
+            transition: all 0.3s ease;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4);
         }
 
         textarea:focus {
-            border-color: var(--primary);
-        }
-
-        .hint {
-            font-size: 0.9rem;
-            color: #94a3b8;
-            text-align: left;
-            margin-bottom: 0;
+            border-color: var(--accent-gold-light);
+            box-shadow: 0 0 0 3px var(--gold-glow);
         }
 
         /* --- 抽選画面 --- */
@@ -86,23 +108,21 @@
             gap: 1.5rem;
         }
 
-        /* ルーレットの窓（スクロールする部分） */
+        /* ルーレットウィンドウ */
         #roulette-window {
             height: var(--item-height);
-            background-color: #0f172a;
-            border-radius: 0.5rem;
-            border: 3px solid #334155;
-            overflow: hidden; /* 枠外を隠す */
+            background: #0d1117;
+            border-radius: 1rem;
+            border: 1px solid rgba(245, 158, 11, 0.4);
+            overflow: hidden;
             position: relative;
-            box-shadow: inset 0 10px 20px rgba(0,0,0,0.5);
+            box-shadow: inset 0 4px 12px rgba(0, 0, 0, 0.8), 0 0 20px var(--gold-glow);
         }
 
-        /* 縦に並ぶアイテムのコンテナ */
         #roulette-strip {
             display: flex;
             flex-direction: column;
             width: 100%;
-            /* アニメーションはJSで動的に付与します */
         }
 
         .roulette-item {
@@ -110,50 +130,67 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 3rem;
-            font-weight: bold;
-            color: #f8fafc;
-            word-break: break-all;
-            padding: 0 1rem;
+            font-weight: 700;
+            color: var(--text-main);
+            padding: 0.5rem 1.2rem;
             box-sizing: border-box;
+            text-align: center;
+            /* 長文はみ出し防止処理 */
+            word-break: break-all;
+            overflow-wrap: anywhere;
+            line-height: 1.3;
         }
 
-        /* 当選時の演出 */
+        /* 文字数に応じた自動フォントサイズ変更用クラス */
+        .font-lg { font-size: 2.1rem; }
+        .font-md { font-size: 1.55rem; }
+        .font-sm { font-size: 1.15rem; }
+        .font-xs { font-size: 0.92rem; }
+
+        /* 当選演出 */
         .winner-anim {
-            animation: pulse-color 1.5s infinite;
-            color: #fde047;
-            text-shadow: 0 0 10px #facc15, 0 0 20px #eab308;
+            animation: gold-pulse 1.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) infinite alternate;
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(180, 83, 9, 0.25) 100%);
+            color: var(--accent-gold-light);
+            text-shadow: 0 0 12px rgba(251, 191, 36, 0.5);
         }
 
-        @keyframes pulse-color {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
+        @keyframes gold-pulse {
+            0% { transform: scale(0.98); opacity: 0.9; }
+            100% { transform: scale(1.02); opacity: 1; }
         }
 
-        /* --- ボタン --- */
+        /* --- ボタン共通 --- */
         .btn-group {
             display: flex;
-            gap: 1rem;
+            gap: 0.8rem;
             justify-content: center;
             flex-wrap: wrap;
         }
 
         button {
-            padding: 0.8rem 1.5rem;
-            font-size: 1.1rem;
-            font-weight: bold;
-            color: white;
-            background-color: var(--primary);
+            padding: 0.85rem 1.6rem;
+            font-size: 1rem;
+            font-weight: 700;
+            font-family: inherit;
+            color: #ffffff;
+            background: var(--gold-grad);
             border: none;
-            border-radius: 0.5rem;
+            border-radius: 0.75rem;
             cursor: pointer;
-            transition: all 0.2s;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            transition: all 0.25s ease;
+            box-shadow: 0 4px 14px var(--gold-glow);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            letter-spacing: 0.5px;
         }
 
         button:hover:not(:disabled) {
-            background-color: var(--primary-hover);
             transform: translateY(-2px);
+            filter: brightness(1.1);
+            box-shadow: 0 6px 20px var(--gold-glow);
         }
 
         button:active:not(:disabled) {
@@ -161,34 +198,70 @@
         }
 
         button:disabled {
-            background-color: #475569;
-            color: #94a3b8;
+            background: #21262d;
+            color: #484f58;
             cursor: not-allowed;
             box-shadow: none;
             transform: none;
         }
 
+        /* ボタンバリエーション */
+        .btn-secondary {
+            background: var(--btn-secondary-bg);
+            color: var(--text-main);
+            border: 1px solid var(--btn-secondary-border);
+            box-shadow: none;
+        }
+        .btn-secondary:hover:not(:disabled) {
+            background: #30363d;
+            border-color: #8b949e;
+            box-shadow: none;
+        }
+
+        .btn-remove-winner {
+            background: #9f1239;
+            box-shadow: 0 4px 12px rgba(159, 18, 57, 0.3);
+        }
+        .btn-remove-winner:hover:not(:disabled) {
+            background: #be123c;
+            box-shadow: 0 6px 16px rgba(159, 18, 57, 0.4);
+        }
+        .btn-remove-winner.removed {
+            background: #065f46;
+            color: #34d399;
+            box-shadow: none;
+        }
+
         /* --- 候補一覧リスト --- */
         .candidate-section {
-            background-color: #0f172a;
-            border-radius: 0.5rem;
-            padding: 1rem;
+            background: #0d1117;
+            border-radius: 0.85rem;
+            padding: 1.2rem;
             text-align: left;
+            border: 1px solid var(--btn-secondary-border);
+        }
+
+        .candidate-section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.8rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--btn-secondary-border);
         }
 
         .candidate-section h3 {
-            margin-top: 0;
-            font-size: 1rem;
-            color: #94a3b8;
-            border-bottom: 1px solid #334155;
-            padding-bottom: 0.5rem;
+            margin: 0;
+            font-size: 0.85rem;
+            color: var(--text-sub);
+            letter-spacing: 0.5px;
         }
 
         #candidate-list {
             list-style: none;
             padding: 0;
             margin: 0;
-            max-height: 200px;
+            max-height: 180px;
             overflow-y: auto;
         }
 
@@ -196,79 +269,99 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 0.5rem;
-            border-bottom: 1px solid #1e293b;
+            padding: 0.55rem 0.3rem;
+            border-bottom: 1px dashed rgba(255, 255, 255, 0.05);
+            font-size: 0.95rem;
         }
 
         .candidate-row:last-child {
             border-bottom: none;
         }
 
+        .candidate-text {
+            word-break: break-all;
+            padding-right: 0.5rem;
+            color: var(--text-main);
+        }
+
         .delete-btn {
-            background-color: var(--danger);
-            color: white;
-            border: none;
-            border-radius: 0.25rem;
-            padding: 0.3rem 0.6rem;
-            font-size: 0.8rem;
+            background: transparent;
+            color: #f43f5e;
+            border: 1px solid rgba(244, 63, 94, 0.3);
+            border-radius: 0.4rem;
+            padding: 0.2rem 0.5rem;
+            font-size: 0.75rem;
             cursor: pointer;
+            box-shadow: none;
+            font-weight: 500;
         }
 
         .delete-btn:hover:not(:disabled) {
-            background-color: var(--danger-hover);
+            background: rgba(244, 63, 94, 0.15);
+            border-color: #f43f5e;
+            transform: none;
+            box-shadow: none;
         }
-        
-        .delete-btn:disabled {
-            background-color: #475569;
-            cursor: not-allowed;
-        }
-        
-        /* スクロールバーの装飾 */
-        #candidate-list::-webkit-scrollbar { width: 8px; }
-        #candidate-list::-webkit-scrollbar-track { background: #0f172a; }
-        #candidate-list::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+
+        /* スクロールバー装飾 */
+        #candidate-list::-webkit-scrollbar { width: 5px; }
+        #candidate-list::-webkit-scrollbar-track { background: #0d1117; }
+        #candidate-list::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
     </style>
 </head>
 <body>
 
 <div class="container">
+    <!-- タイトルロゴ -->
+    <div class="logo">THE SELECTOR</div>
+    <div class="subtitle">ランダム選出ルーレット</div>
+
+    <!-- 入力画面 -->
     <div id="input-screen">
-        <h1>🎲 簡単ルーレット</h1>
-        <p class="hint">候補を改行区切りで入力してください。</p>
-        <textarea id="candidates-input" placeholder="Aさん&#13;&#10;Bさん&#13;&#10;Cさん"></textarea>
-        <button id="go-to-roulette">抽選画面へ</button>
+        <textarea id="candidates-input" placeholder="候補を改行区切りで入力してください&#13;&#10;例：&#13;&#10;選択肢 A&#13;&#10;選択肢 B&#13;&#10;選択肢 C"></textarea>
+        <button id="go-to-roulette">抽選画面を表示</button>
     </div>
 
+    <!-- 抽選画面 -->
     <div id="roulette-screen">
-        <h1>🎰 抽選中...</h1>
-        
+        <!-- ルーレット画面 -->
         <div id="roulette-window">
             <div id="roulette-strip">
-                <div class="roulette-item" id="current-display">準備完了</div>
+                <div class="roulette-item font-lg" id="current-display">READY</div>
             </div>
         </div>
         
+        <!-- 操作ボタン群 -->
         <div class="btn-group">
-            <button id="start-roulette">抽選開始</button>
-            <button id="back-to-input">再入力</button>
+            <button id="start-roulette">スピン開始</button>
+        </div>
+        <div class="btn-group">
+            <button id="remove-winner-btn" class="btn-remove-winner" disabled>選択された項目を削除</button>
+            <button id="back-to-input" class="btn-secondary">リスト編集</button>
         </div>
 
+        <!-- 候補一覧 -->
         <div class="candidate-section">
-            <h3 id="candidate-count">登録中の候補: 0件</h3>
-            <ul id="candidate-list">
-                </ul>
+            <div class="candidate-section-header">
+                <h3 id="candidate-count">登録済みの候補: 0件</h3>
+            </div>
+            <ul id="candidate-list"></ul>
         </div>
     </div>
 </div>
 
 <script>
-    // --- 要素の取得 ---
+    // --- 定数＆ローカルストレージキー ---
+    const STORAGE_KEY = 'the_selector_candidates_data';
+
+    // --- DOM要素 ---
     const inputScreen = document.getElementById('input-screen');
     const rouletteScreen = document.getElementById('roulette-screen');
     const textarea = document.getElementById('candidates-input');
     const goToRouletteBtn = document.getElementById('go-to-roulette');
     const startBtn = document.getElementById('start-roulette');
     const backBtn = document.getElementById('back-to-input');
+    const removeWinnerBtn = document.getElementById('remove-winner-btn');
     
     const rouletteStrip = document.getElementById('roulette-strip');
     const candidateListDisplay = document.getElementById('candidate-list');
@@ -277,60 +370,75 @@
     // --- 状態管理 ---
     let candidates = [];
     let isSpinning = false;
-    const itemHeight = 120; // CSSの --item-height と合わせる
+    let currentWinnerIndex = -1;
+    const itemHeight = 120;
 
-    // --- AudioContext (効果音用) ---
+    // --- AudioContext (効果音合成) ---
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     let audioCtx;
 
     function initAudio() {
-        if (!audioCtx) {
-            audioCtx = new AudioContext();
-        }
-        if (audioCtx.state === 'suspended') {
-            audioCtx.resume();
-        }
+        if (!audioCtx) audioCtx = new AudioContext();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
     }
 
-    // ドラムロール（回転）音
     function playTickSound() {
         if (!audioCtx) return;
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
-        osc.type = 'square';
-        osc.frequency.setValueAtTime(150, audioCtx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.05);
-        gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(60, audioCtx.currentTime + 0.04);
+        gain.gain.setValueAtTime(0.06, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.04);
         osc.connect(gain);
         gain.connect(audioCtx.destination);
         osc.start();
-        osc.stop(audioCtx.currentTime + 0.05);
+        osc.stop(audioCtx.currentTime + 0.04);
     }
 
-    // 当選時のファンファーレ
     function playTadaSound() {
         if (!audioCtx) return;
-        const frequencies = [261.63, 329.63, 392.00, 523.25]; // C, E, G, C (Cメジャーコード)
-        frequencies.forEach((freq, i) => {
+        const notes = [440.00, 554.37, 659.25, 880.00]; // A4, C#5, E5, A5 (上品なAメジャーコード)
+        notes.forEach((freq, i) => {
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
-            osc.type = 'triangle';
+            osc.type = 'sine';
             osc.frequency.value = freq;
-            gain.gain.setValueAtTime(0, audioCtx.currentTime + (i * 0.05));
-            gain.gain.linearRampToValueAtTime(0.1, audioCtx.currentTime + 0.05 + (i * 0.05));
-            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.5 + (i * 0.05));
+            gain.gain.setValueAtTime(0, audioCtx.currentTime + (i * 0.06));
+            gain.gain.linearRampToValueAtTime(0.1, audioCtx.currentTime + 0.06 + (i * 0.06));
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.2 + (i * 0.06));
             osc.connect(gain);
             gain.connect(audioCtx.destination);
-            osc.start(audioCtx.currentTime + (i * 0.05));
-            osc.stop(audioCtx.currentTime + 2);
+            osc.start(audioCtx.currentTime + (i * 0.06));
+            osc.stop(audioCtx.currentTime + 1.5);
         });
+    }
+
+    // --- LocalStorage 読み書き ---
+    function loadCandidates() {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved !== null) {
+            textarea.value = saved;
+        }
+    }
+
+    function saveCandidates() {
+        localStorage.setItem(STORAGE_KEY, candidates.join('\n'));
+    }
+
+    // --- 文字数に応じたフォントサイズ調整 ---
+    function getFontSizeClass(text) {
+        const len = text.length;
+        if (len > 35) return 'font-xs';
+        if (len > 20) return 'font-sm';
+        if (len > 10) return 'font-md';
+        return 'font-lg';
     }
 
     // --- 画面切り替え ---
     function showRouletteScreen() {
-        initAudio(); // ユーザーのアクションを機にAudioを許可
-
+        initAudio();
         const rawText = textarea.value;
         candidates = rawText.split('\n').map(item => item.trim()).filter(item => item !== '');
 
@@ -339,33 +447,40 @@
             return;
         }
 
+        saveCandidates();
         renderCandidateList();
+        resetWinnerRemoveButton();
         
-        // 表示のリセット
         rouletteStrip.style.transition = 'none';
         rouletteStrip.style.transform = 'translateY(0)';
-        rouletteStrip.innerHTML = '<div class="roulette-item" id="current-display">準備完了</div>';
+        rouletteStrip.innerHTML = '<div class="roulette-item font-lg">READY</div>';
 
         inputScreen.style.display = 'none';
         rouletteScreen.style.display = 'flex';
     }
 
     function showInputScreen() {
-        textarea.value = candidates.join('\n'); // 削除された状態をテキストエリアに反映
+        textarea.value = candidates.join('\n');
         rouletteScreen.style.display = 'none';
         inputScreen.style.display = 'flex';
     }
 
-    // --- 候補一覧の描画と削除機能 ---
+    // --- 当選削除ボタンのリセット ---
+    function resetWinnerRemoveButton() {
+        removeWinnerBtn.disabled = true;
+        removeWinnerBtn.className = 'btn-remove-winner';
+        removeWinnerBtn.textContent = '選択された項目を削除';
+    }
+
+    // --- 候補一覧の更新 ---
     function renderCandidateList() {
         candidateListDisplay.innerHTML = '';
-        candidateCountDisplay.textContent = `登録中の候補: ${candidates.length}件`;
+        candidateCountDisplay.textContent = `登録済みの候補: ${candidates.length}件`;
 
         if (candidates.length === 0) {
             startBtn.disabled = true;
             return;
         }
-
         startBtn.disabled = false;
 
         candidates.forEach((candidate, index) => {
@@ -373,17 +488,15 @@
             li.className = 'candidate-row';
             
             const span = document.createElement('span');
+            span.className = 'candidate-text';
             span.textContent = candidate;
             
             const delBtn = document.createElement('button');
             delBtn.className = 'delete-btn';
-            delBtn.textContent = '× 削除';
-            // スピン中は削除ボタンを無効化
+            delBtn.textContent = '削除';
             delBtn.disabled = isSpinning;
             
-            delBtn.addEventListener('click', () => {
-                deleteCandidate(index);
-            });
+            delBtn.addEventListener('click', () => deleteCandidate(index));
 
             li.appendChild(span);
             li.appendChild(delBtn);
@@ -394,10 +507,11 @@
     function deleteCandidate(index) {
         if (isSpinning) return;
         candidates.splice(index, 1);
+        saveCandidates();
         renderCandidateList();
     }
 
-    // --- スクロールアニメーションと抽選 ---
+    // --- スピン処理 ---
     function startRoulette() {
         if (candidates.length === 0 || isSpinning) return;
         initAudio();
@@ -405,92 +519,98 @@
         isSpinning = true;
         startBtn.disabled = true;
         backBtn.disabled = true;
-        renderCandidateList(); // 削除ボタンを無効化するために再描画
+        resetWinnerRemoveButton();
+        renderCandidateList();
 
-        // 1. スクロール用の要素を生成
-        const totalItems = 40; // スクロールする総数（演出の長さ）
-        const winnerIndexLocal = Math.floor(Math.random() * candidates.length);
-        const winnerText = candidates[winnerIndexLocal];
+        const totalItems = 35;
+        currentWinnerIndex = Math.floor(Math.random() * candidates.length);
+        const winnerText = candidates[currentWinnerIndex];
         
-        // 現在表示されている要素を取得
-        const currentText = rouletteStrip.querySelector('.roulette-item:last-child')?.textContent || '準備完了';
+        const currentText = rouletteStrip.querySelector('.roulette-item:last-child')?.textContent || 'READY';
         
-        // ストリップの中身を作り直す
         rouletteStrip.innerHTML = '';
         
-        // 最初の要素（現在表示されているもの）
+        // 開始アイテム
         const firstDiv = document.createElement('div');
-        firstDiv.className = 'roulette-item';
+        firstDiv.className = `roulette-item ${getFontSizeClass(currentText)}`;
         firstDiv.textContent = currentText;
         rouletteStrip.appendChild(firstDiv);
 
-        // ダミーの要素を追加（スロットが回っているように見せる）
+        // ダミーアイテム
         for (let i = 1; i < totalItems - 1; i++) {
             const div = document.createElement('div');
-            div.className = 'roulette-item';
-            // ランダムな候補を配置
-            div.textContent = candidates[Math.floor(Math.random() * candidates.length)];
+            const dummyText = candidates[Math.floor(Math.random() * candidates.length)];
+            div.className = `roulette-item ${getFontSizeClass(dummyText)}`;
+            div.textContent = dummyText;
             rouletteStrip.appendChild(div);
         }
 
-        // 最後の要素（当選者）
+        // 当選アイテム
         const winnerDiv = document.createElement('div');
-        winnerDiv.className = 'roulette-item';
+        winnerDiv.className = `roulette-item ${getFontSizeClass(winnerText)}`;
         winnerDiv.textContent = winnerText;
         rouletteStrip.appendChild(winnerDiv);
 
-        // 2. アニメーションの準備
-        rouletteStrip.style.transition = 'none'; // 一旦アニメーションを切る
+        // スクロールアニメーション設定
+        rouletteStrip.style.transition = 'none';
         rouletteStrip.style.transform = `translateY(0px)`;
-        
-        // ブラウザに上記の変更を強制的に認識させる（リフロー）
-        rouletteStrip.offsetHeight; 
+        rouletteStrip.offsetHeight; // リフロー強制
 
-        // 3. アニメーション開始
-        const duration = 4000; // 4秒かけて止まる
-        // cubic-bezier で最初は早く、最後はゆっくり止まる動きを作る
-        rouletteStrip.style.transition = `transform ${duration}ms cubic-bezier(0.2, 0.8, 0.1, 1)`;
-        // 最後の要素（totalItems - 1）の位置まで上にスクロール
+        const duration = 3800;
+        rouletteStrip.style.transition = `transform ${duration}ms cubic-bezier(0.15, 0.85, 0.15, 1)`;
         const targetY = -((totalItems - 1) * itemHeight);
         rouletteStrip.style.transform = `translateY(${targetY}px)`;
 
-        // 4. 音の演出（擬似的に徐々に遅くなるスクロール音）
+        // 効果音制御
         let elapsed = 0;
-        let delay = 20;
-        
+        let delay = 25;
         function tickLoop() {
             if (!isSpinning) return;
             playTickSound();
-            
-            // 時間の経過とともに間隔をあける（ブレーキがかかる表現）
             let progress = elapsed / duration;
-            delay = 20 + (Math.pow(progress, 3) * 300); 
-            
+            delay = 25 + (Math.pow(progress, 3) * 280); 
             elapsed += delay;
-            if (elapsed < duration - 100) {
+            if (elapsed < duration - 80) {
                 setTimeout(tickLoop, delay);
             }
         }
         tickLoop();
 
-        // 5. アニメーション終了時の処理
+        // 完了処理
         setTimeout(() => {
             isSpinning = false;
             startBtn.disabled = false;
             backBtn.disabled = false;
-            renderCandidateList(); // 削除ボタンを有効化
+            removeWinnerBtn.disabled = false; // 当選削除ボタンを有効化
+            renderCandidateList();
             
             winnerDiv.classList.add('winner-anim');
-            playTadaSound(); // ファンファーレ
-            
+            playTadaSound();
         }, duration);
     }
 
-    // --- イベントリスナー ---
+    // --- 当選項目のワンタップ削除 ---
+    removeWinnerBtn.addEventListener('click', () => {
+        if (currentWinnerIndex !== -1 && candidates[currentWinnerIndex] !== undefined) {
+            candidates.splice(currentWinnerIndex, 1);
+            saveCandidates();
+            renderCandidateList();
+            
+            // ボタンの見た目・テキストを変更して削除完了を通知
+            removeWinnerBtn.disabled = true;
+            removeWinnerBtn.classList.add('removed');
+            removeWinnerBtn.textContent = '✓ リストから削除完了';
+            currentWinnerIndex = -1; // 連打防止
+        }
+    });
+
+    // --- イベント登録 ---
     goToRouletteBtn.addEventListener('click', showRouletteScreen);
     backBtn.addEventListener('click', showInputScreen);
     startBtn.addEventListener('click', startRoulette);
 
+    // 初期化ロード
+    window.addEventListener('DOMContentLoaded', loadCandidates);
 </script>
 </body>
 </html>
